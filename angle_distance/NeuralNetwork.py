@@ -23,7 +23,7 @@ class NeuralNetwork:
     def closeSession(self):
         self.sess.close()
 
-    def loadWeights(self, path = None):
+    def loadWeights(self, path = None): #Restores a saved session.
         try:
             if(path == None):
                 path = self.savePath
@@ -33,7 +33,7 @@ class NeuralNetwork:
         except:
             print("Couldn't load the weights")
 
-    def saveWeights(self, path = None):
+    def saveWeights(self, path = None): #Saves the current session.
         if(path == None):
             path = self.savePath
         saver = tf.train.Saver()
@@ -86,13 +86,13 @@ class NeuralNetwork:
         print ("\nAverage cost: \t"+ str(avgCost))
         return avgCost, totalTime
 
-    def getCost(self, data, labels):
+    def getCost(self, data, labels): #Gets the cost of some data.
         pcost = self.sess.run( self.cost, feed_dict={self.inPlaceholder: data, self.outPlaceholder:labels} )
         return pcost
 
-    def predict(self, data):
+    def predict(self, data): #Predicts value(s) with data as input.
         pred = self.sess.run(self.prediction, feed_dict={self.inPlaceholder:data})
         return pred
 
-    def execute(self, function, data): #Execute any function in current Session
+    def execute(self, function, data): #Executes any function in current Session
         return self.sess.run(function, feed_dict= data)
