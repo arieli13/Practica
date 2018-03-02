@@ -1,3 +1,17 @@
+0.000165 Average test cost
+
+	Average training cost:	0.000105
+	Hidden Layer(s):		[32, 16]
+	Total weights:			673
+	Iterations:				1000
+	Batch Size:				20
+	Training data:			190
+	Test data:				497
+	Learning rate:			0.000100
+	Training time:			7.028866 seconds
+	Test time:				0.166132 seconds
+
+
 0.000170 Average test cost
 
 	Average training cost:	0.000071
@@ -10,5 +24,89 @@
 	Learning rate:			0.000100
 	Training time:			6.671030 seconds
 	Test time:				0.252160 seconds
+
+
+0.000434 Average test cost
+
+	Average training cost:	0.000389
+	Hidden Layer(s):		[32, 16]
+	Total weights:			673
+	Iterations:				500
+	Batch Size:				10
+	Training data:			190
+	Test data:				497
+	Learning rate:			0.000100
+	Training time:			9.132368 seconds
+	Test time:				0.253158 seconds
+
+
+0.000457 Average test cost
+
+	Average training cost:	0.000329
+	Hidden Layer(s):		[32, 16]
+	Total weights:			673
+	Iterations:				1000
+	Batch Size:				20
+	Training data:			190
+	Test data:				497
+	Learning rate:			0.000100
+	Training time:			8.915921 seconds
+	Test time:				0.244792 seconds
+
+
+0.029990 Average test cost
+
+	Average training cost:	0.030984
+	Hidden Layer(s):		[32, 16]
+	Total weights:			673
+	Iterations:				100
+	Batch Size:				10
+	Training data:			190
+	Test data:				497
+	Learning rate:			0.000100
+	Training time:			1.832300 seconds
+	Test time:				0.253946 seconds
+
+
+0.034667 Average test cost
+
+	Average training cost:	0.036272
+	Hidden Layer(s):		[50]
+	Total weights:			251
+	Iterations:				100
+	Batch Size:				10
+	Training data:			190
+	Test data:				497
+	Learning rate:			0.000100
+	Training time:			1.916575 seconds
+	Test time:				0.261648 seconds
+
+
+0.086823 Average test cost
+
+	Average training cost:	0.088712
+	Hidden Layer(s):		[32]
+	Total weights:			161
+	Iterations:				100
+	Batch Size:				10
+	Training data:			190
+	Test data:				497
+	Learning rate:			0.000100
+	Training time:			1.666499 seconds
+	Test time:				0.189641 seconds
+
+
+0.132570 Average test cost
+
+	Average training cost:	0.136553
+	Hidden Layer(s):		[10, 10]
+	Total weights:			161
+	Iterations:				100
+	Batch Size:				10
+	Training data:			190
+	Test data:				497
+	Learning rate:			0.000100
+	Training time:			1.768460 seconds
+	Test time:				0.243490 seconds
 
 

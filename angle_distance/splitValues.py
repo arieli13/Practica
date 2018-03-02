@@ -13,10 +13,10 @@ with open('distancia.txt', 'a') as x:
 					y.write(str(line[1])+"\n")
 					z.write(str(line[2])+"\n")
 '''
-with open('labels.txt', 'a') as x:
-	with open('./Entrenamientos/leftArmMovement.txt', 'r') as file: #
+with open('data_100.txt', 'a') as x:
+	with open('./dataset/leftArmMovement.txt', 'r') as file: #
 		data = file.readlines()
-		for line in data:
-			line = line.split(" ")
-			line = " ".join(line[3:])
+		for line in data[:100]:
 			x.write(line)
+		file.close()
+	x.close()
