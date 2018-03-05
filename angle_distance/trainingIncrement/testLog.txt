@@ -1,0 +1,196 @@
+0.122755 Average test cost
+
+	Average training cost:	0.000004
+	Hidden Layer(s):		[128, 64, 32]
+	Total weights:			10914
+	Iterations:				200
+	Batch Size:				10
+	Training data:			20
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			0.691663 seconds
+	Test time:				0.258832 seconds
+
+
+0.114224 Average test cost
+
+	Average training cost:	0.000013
+	Hidden Layer(s):		[128, 64, 32]
+	Total weights:			10914
+	Iterations:				200
+	Batch Size:				10
+	Training data:			30
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.020601 seconds
+	Test time:				0.256782 seconds
+
+
+0.113548 Average test cost
+
+	Average training cost:	0.000008
+	Hidden Layer(s):		[128, 64, 32]
+	Total weights:			10914
+	Iterations:				200
+	Batch Size:				10
+	Training data:			40
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.339952 seconds
+	Test time:				0.272318 seconds
+
+
+0.108323 Average test cost
+
+	Average training cost:	0.000233
+	Hidden Layer(s):		[64, 64]
+	Total weights:			4546
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.373795 seconds
+	Test time:				1.257656 seconds
+
+
+0.108803 Average test cost
+
+	Average training cost:	0.000098
+	Hidden Layer(s):		[64, 64]
+	Total weights:			4546
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.376931 seconds
+	Test time:				0.354920 seconds
+
+
+0.109436 Average test cost
+
+	Average training cost:	0.000150
+	Hidden Layer(s):		[64, 64]
+	Total weights:			4546
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.383517 seconds
+	Test time:				1.217910 seconds
+
+
+0.110163 Average test cost
+
+	Average training cost:	0.000080
+	Hidden Layer(s):		[64, 64]
+	Total weights:			4546
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.404001 seconds
+	Test time:				1.283853 seconds
+
+
+0.110485 Average test cost
+
+	Average training cost:	0.000118
+	Hidden Layer(s):		[64, 64]
+	Total weights:			4546
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.360477 seconds
+	Test time:				0.829300 seconds
+
+
+0.110670 Average test cost
+
+	Average training cost:	0.000127
+	Hidden Layer(s):		[64, 64]
+	Total weights:			4546
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.401536 seconds
+	Test time:				0.355716 seconds
+
+
+0.111140 Average test cost
+
+	Average training cost:	0.000234
+	Hidden Layer(s):		[128, 64, 32]
+	Total weights:			10914
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.699318 seconds
+	Test time:				0.261025 seconds
+
+
+0.111475 Average test cost
+
+	Average training cost:	0.000163
+	Hidden Layer(s):		[64, 64]
+	Total weights:			4546
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.387657 seconds
+	Test time:				0.832495 seconds
+
+
+0.112034 Average test cost
+
+	Average training cost:	0.000192
+	Hidden Layer(s):		[64, 64]
+	Total weights:			4546
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.399644 seconds
+	Test time:				1.286838 seconds
+
+
+0.113418 Average test cost
+
+	Average training cost:	0.000008
+	Hidden Layer(s):		[64, 64]
+	Total weights:			4546
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.334857 seconds
+	Test time:				1.277353 seconds
+
+
+0.113459 Average test cost
+
+	Average training cost:	0.000028
+	Hidden Layer(s):		[64, 64]
+	Total weights:			4546
+	Iterations:				200
+	Batch Size:				10
+	Training data:			50
+	Test data:				497
+	Learning rate:			0.001000
+	Training time:			1.326921 seconds
+	Test time:				0.275001 seconds
+
+

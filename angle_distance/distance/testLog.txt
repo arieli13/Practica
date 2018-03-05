@@ -1,3 +1,17 @@
+0.000111 Average test cost
+
+	Average training cost:	0.000067
+	Hidden Layer(s):		[32, 16]
+	Total weights:			673
+	Iterations:				1000
+	Batch Size:				20
+	Training data:			190
+	Test data:				497
+	Learning rate:			0.000100
+	Training time:			6.311220 seconds
+	Test time:				0.314112 seconds
+
+
 0.000165 Average test cost
 
 	Average training cost:	0.000105
