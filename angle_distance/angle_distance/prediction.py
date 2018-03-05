@@ -102,7 +102,7 @@ def execute():
     trainAvgCost, trainTime = nn.train(train_X, train_Y, batchSize, iterations, log = True )
     #nn.saveWeights()
     accuracy = tf.summary.scalar("Accuracy_Test", cost)
-    testAvgCost, testTime = nn.test(test_X, test_Y, None, accuracy)
+    testAvgCost, testTime = nn.test(test_X, test_Y, printTest, accuracy)
     csv = "%8.6f;%f;%s;%d;%d;%d;%d;%d;%f;%f;%f\n"%(testAvgCost, trainAvgCost, str(h_l), totalWeights, iterations, batchSize, len(train_X), len(test_X), learning_rate, trainTime, testTime)
     nn.closeSession()
     saveData("./angle_distance/testLog.csv", csv)
