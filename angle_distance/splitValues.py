@@ -16,7 +16,8 @@ with open('distancia.txt', 'a') as x:
 with open('data_50.txt', 'a') as x:
 	with open('./dataset/leftArmMovement.txt', 'r') as file: #
 		data = file.readlines()
-		for line in data[:50]:
+		data = data[499483:]
+		for line in data:
 			x.write(line)
 		file.close()
 	x.close()
