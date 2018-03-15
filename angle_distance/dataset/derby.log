@@ -1,0 +1,13 @@
+----------------------------------------------------------------
+Tue Mar 13 12:34:27 CET 2018:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-0162-1f23-dd37-000013bd7ba8 
+on database directory /home/ariel/Dropbox/UDC/angle_distance/dataset/metastore_db with class loader org.apache.spark.sql.hive.client.IsolatedClientLoader$$anon$1@2246cccb 
+Loaded from file:/usr/local/lib/python2.7/dist-packages/pyspark/jars/derby-10.12.1.1.jar
+java.vendor=Oracle Corporation
+java.runtime.version=1.8.0_151-8u151-b12-0ubuntu0.16.04.2-b12
+user.dir=/home/ariel/Dropbox/UDC/angle_distance/dataset
+os.name=Linux
+os.arch=amd64
+os.version=4.13.0-36-generic
+derby.system.home=null
+Database Class Loader started - derby.database.classpath=''
