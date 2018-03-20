@@ -13,11 +13,12 @@ with open('distancia.txt', 'a') as x:
 					y.write(str(line[1])+"\n")
 					z.write(str(line[2])+"\n")
 '''
-with open('data_50.txt', 'a') as x:
-	with open('./dataset/leftArmMovement.txt', 'r') as file: #
-		data = file.readlines()
-		data = data[499483:]
-		for line in data:
-			x.write(line)
-		file.close()
-	x.close()
+def function(file, newFile):
+	with open(newFile, 'a') as x:
+		with open(file, 'r') as file: #
+			data = file.readlines()
+			data = data[500:]
+			for line in data:
+				x.write(line)
+			file.close()
+		x.close()
