@@ -15,7 +15,7 @@ def create_testing_dataset():
 
     """
     complete_dataset = create_dataset(
-        "./datasets/normalizado/pnode01_03000_test.txt")
+        "./datasets/normalizado/pnode00_03000_test.txt")
     batched_dataset = complete_dataset.batch(1)
     return batched_dataset
 
@@ -41,14 +41,13 @@ def prepare_testing():
     return {"cost_update": update, "iterator_initializer": iterator["initializer"], "summaries": summaries}
 
 
-def test(sess, train_number, iterator_initializer, cost_update, file_writer, summaries):
+def test(sess, last_test_summary_number, iterator_initializer, cost_update, file_writer, summaries):
     """Test a neural network...
 
     Tests the neural network in sess. Executes the cost operation until the iterator is empty.
 
     Args:
-        train_number: The number of the current training. It is going to be used for summaries, in the graphics generated
-            in tensorboard, the step number is this number, adding 1 each iteration of the training.
+        last_test_summary_number: The number to begin the summaries.
         iterator_initializer: It is used to initialize the iterator. So once it is initialized, the training begins.
         cost: An operation that calcules the losses number on each iteration, comparing the label and the prediction. It is used
             to obtain the avg_cost of the training.
@@ -57,6 +56,7 @@ def test(sess, train_number, iterator_initializer, cost_update, file_writer, sum
 
     Returns:
         avg_cost: The average cost of the test.
+        last_test_summary_number: The number of the last summary addition.
 
     """
     sess.run(iterator_initializer)
@@ -64,14 +64,17 @@ def test(sess, train_number, iterator_initializer, cost_update, file_writer, sum
     iterations = 0
     while True:
         try:
-            cost_aux = sess.run(cost_update)
-            avg_cost += cost_aux
-            iterations += 1
             if iterations % 10 == 0:
-                summary_values = sess.run(summaries)
+                cost_aux, summary_values = sess.run([cost_update, summaries])
+                avg_cost += cost_aux
                 file_writer.add_summary(
-                    summary_values, train_number*10+iterations)
+                    summary_values, last_test_summary_number)
+            else:
+                cost_aux = sess.run(cost_update)
+                avg_cost += cost_aux
+            iterations += 1
+            last_test_summary_number+=1
         except tf.errors.OutOfRangeError:
             avg_cost /= iterations
             break
-    return avg_cost
+    return avg_cost, last_test_summary_number

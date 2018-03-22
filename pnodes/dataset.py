@@ -7,15 +7,17 @@ def parse_line(line):
     """Take an string input and returns the features and labels for a neural network...
 
     Args:
-        line: A string as follows: "distance_t angle_t angle_act distance_t1 angle_t1"
+        line: A string as follows: "ball_in_right_hand ball_dist box_size ball_in_left_hand box_ang ball_ang box_dist ball_size Confidence"
 
     Returns:
-        features: tf.stack() with a list of floats inside as follows: [distance_t, angle_t, angle_act]
-        labels: tf.stack() with a list of floats inside as follows: [distance_t1, angle_t1]
+        features: tf.stack() with a list of floats inside as follows: [ball_in_right_hand, ball_dist, box_size, ball_in_left_hand, box_ang, ball_ang, box_dist, ball_size]
+        labels: tf.stack() with a list of float inside as follows: [Confidence]
 
     """
-    ball_in_right_hand, ball_dist, box_size, ball_in_left_hand, box_ang, ball_ang, box_dist, ball_size, Confidence = tf.decode_csv( line, [[0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0]], field_delim=" ")
-    features = tf.stack([ball_in_right_hand, ball_dist, box_size, ball_in_left_hand, box_ang, ball_ang, box_dist, ball_size])
+    ball_in_right_hand, ball_dist, box_size, ball_in_left_hand, box_ang, ball_ang, box_dist, ball_size, Confidence = tf.decode_csv(
+        line, [[0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0]], field_delim=" ")
+    features = tf.stack([ball_in_right_hand, ball_dist, box_size,
+                         ball_in_left_hand, box_ang, ball_ang, box_dist, ball_size])
     labels = tf.stack([Confidence])
     return features, labels
 

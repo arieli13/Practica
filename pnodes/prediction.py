@@ -27,6 +27,7 @@ def load_model(sess, saver, path):
     finally:
         return ckpt
 
+
 def load_data(path):
     data = []
     with open(path) as f:
@@ -39,39 +40,37 @@ def load_data(path):
             data.append([features, label])
         return data
 
+
 def execute_prediction():
-    dataset = load_data("./datasets/normalizado/pnode01_03000.txt")
+    dataset = load_data("./datasets/normalizado/pnode00_03000.txt")
     features = tf.placeholder(tf.float32, [None, 8])
     label = tf.placeholder(tf.float32, [None, 1])
     prediction, _, variables = create_model(features, False)
     _, cost = tf.metrics.root_mean_squared_error(
         labels=label, predictions=prediction)  # Mean Squared Error
-    
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer()) 
+        sess.run(tf.local_variables_initializer())
         saver = tf.train.Saver(variables)
         _ = load_model(sess, saver, "./checkpoints/")
         dataset_len = len(dataset)
         avg_cost = 0
         buffer = []
-        errors = []
         for data in dataset:
             f = data[0]
             l = data[1]
-            prediction_aux, cost_aux = sess.run([prediction, cost], feed_dict={features:f, label:l})
+            prediction_aux, cost_aux = sess.run(
+                [prediction, cost], feed_dict={features: f, label: l})
             avg_cost += cost_aux
-            buffer_string = "%f;%f\n"%(prediction_aux[0][0], l[0][0])
+            buffer_string = "%f;%f\n" % (prediction_aux[0][0], l[0][0])
             print buffer_string
             buffer.append(buffer_string)
         buffer = "".join(buffer)
-        with open("predictions.csv", "w") as f:
+        with open("predictions.csv", "w+") as f:
             f.write(buffer)
         final_cost = avg_cost/dataset_len
-        print "Cost: %f"%(final_cost)
-
-
+        print "Cost: %f" % (final_cost)
 
 
 def main():

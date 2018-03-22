@@ -5,8 +5,9 @@ from train import prepare_training, train
 from test import prepare_testing, test
 
 learning_rate = 0.001
-batch_size = 10
-increment_dataset = 10  # Number of registers to add to the next training
+batch_size = 1
+increment_dataset = 1  # Number of registers to add to the next training
+repeat_dataset = 10
 
 
 def load_model(sess, saver, path):
@@ -64,18 +65,24 @@ def incremental_training(sess, saver, training_variables, testing_variables, ckp
         ckpt: The number of the next checkpoint to be saved. It is the global_step of the train.
 
     """
-    file_writer_train = tf.summary.FileWriter("./logs/train/", sess.graph)
-    file_writer_test = tf.summary.FileWriter("./logs/test/", sess.graph)
+    file_writer_train = tf.summary.FileWriter(
+        "./logs/train/", sess.graph)
+    file_writer_test = tf.summary.FileWriter(
+        "./logs/test/", sess.graph)
     summaries_testing = tf.summary.merge(testing_variables["summaries"])
     summaries_training = tf.summary.merge(training_variables["summaries"])
-    file = open("./LOG.csv", "w")
+    file = open("./LOG.csv", "a+")
+
+    last_test_summary_number = 0
+    last_train_summary_number = 0
     data_buffer = []
-    for train_number in range(1, 20):  # 499483
+    for train_number in range(1, 201):  # 499483
+
         sess.run(training_variables["dataset_resize_op"])
-        avg_cost_train = train(sess, batch_size, train_number,
-                               training_variables["iterator_initializer"], training_variables["optimizer"], training_variables["cost"],  file_writer_train, summaries_training)
-        avg_cost_test = test(
-            sess, train_number, testing_variables["iterator_initializer"], testing_variables["cost_update"], file_writer_test, summaries_testing)
+        avg_cost_train, last_train_summary_number = train(sess, batch_size, last_train_summary_number,
+                                                          training_variables["iterator_initializer"], training_variables["optimizer"], training_variables["cost"],  file_writer_train, summaries_training)
+        avg_cost_test, last_test_summary_number = test(
+            sess, last_test_summary_number, testing_variables["iterator_initializer"], testing_variables["cost_update"], file_writer_test, summaries_testing)
         data_log = "%d;%f;%f\n" % (
             train_number, avg_cost_train, avg_cost_test)
         data_buffer.append(data_log)
@@ -83,8 +90,8 @@ def incremental_training(sess, saver, training_variables, testing_variables, ckp
             train_number, avg_cost_train, avg_cost_test)
         if train_number % 10 == 0:
                 # Writes the data_buffer on log.csv file
-            #file.write("".join(data_buffer))
-            #data_buffer = []
+            file.write("".join(data_buffer))
+            data_buffer = []
             save_model(sess, saver, "./checkpoints/model.ckpt", ckpt)
             ckpt += 1
 
@@ -102,7 +109,7 @@ def execute_incremental_training():
 
     with tf.Session(config=config) as sess:
         training_variables = prepare_training(
-            batch_size, learning_rate, increment_dataset)
+            batch_size, learning_rate, increment_dataset, repeat_dataset)
         testing_variables = prepare_testing()
 
         sess.run(tf.global_variables_initializer())

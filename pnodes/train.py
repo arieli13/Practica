@@ -3,11 +3,12 @@
 import tensorflow as tf
 from dataset import create_dataset, create_iterator
 from model import create_model
+import math
 
 
-def create_training_dataset(batch_size, increment_dataset):
+def create_training_dataset(batch_size, increment_dataset, repeat):
     """Create the dataset of training...
-    
+
     It creates a variable named dataset_size, it is the number
         of registers to be taken each training. An operation is defined to increment 10 times the dataset_size, 
         so in each new training, the dataset_size increments N times and the number of registers to be taken will
@@ -17,6 +18,7 @@ def create_training_dataset(batch_size, increment_dataset):
         batch_size: Size of the batch of the training dataset.
         increment_dataset: The number of registers to increment each training. 
             Ex: First train: 10 registers. Next train: 20 registers. increment_dataset = 10
+        repeat: Number of times to repeat the registers of the dataset.
 
     Returns:
         A dictionary with the variables:
@@ -28,14 +30,14 @@ def create_training_dataset(batch_size, increment_dataset):
     dataset_resize_op = dataset_size.assign(
         tf.add(dataset_size, increment_dataset))
     complete_dataset = create_dataset(
-        "./datasets/normalizado/pnode01_03000_train.txt")  # Loads all training dataset
-    trainable_dataset = complete_dataset.take(dataset_size)
+        "./datasets/normalizado/pnode00_03000_train.txt")  # Loads all training dataset
+    trainable_dataset = complete_dataset.take(dataset_size).repeat(10)
     shuffled_dataset = trainable_dataset.shuffle(dataset_size)
     batched_dataset = shuffled_dataset.batch(batch_size)
     return {"dataset": batched_dataset, "dataset_resize_op": dataset_resize_op}
 
 
-def prepare_training(batch_size, learning_rate, increment_dataset):
+def prepare_training(batch_size, learning_rate, increment_dataset, repeat):
     """Create the nn, cost, iterator and optimizer for the training...
 
     Args:
@@ -43,6 +45,7 @@ def prepare_training(batch_size, learning_rate, increment_dataset):
         learning_rate: Initial learning rate for the AdamOptimizer
         increment_dataset: The number of registers to increment each training. 
             Ex: First train: 10 registers. Next train: 20 registers. increment_dataset = 10
+        repeat: Number of times to repeat the registers of the dataset
 
     Returns:
         A dictionary with the following objects:
@@ -56,36 +59,39 @@ def prepare_training(batch_size, learning_rate, increment_dataset):
             saved_variables: A dictionary with all the variables to be saved.
 
     """
-    dataset = create_training_dataset(batch_size, increment_dataset)
+    dataset = create_training_dataset(batch_size, increment_dataset, repeat)
     iterator = create_iterator(dataset["dataset"])
+    feature, label = iterator["feature"], iterator["label"]
     prediction, summaries, saved_variables = create_model(
-        iterator["feature"], False)
+        feature, True)
     cost = tf.losses.mean_squared_error(
-        labels=iterator["label"], predictions=prediction)  # Mean Squared Error
+        labels=label, predictions=prediction)  # Mean Squared Error
     summaries.append(tf.summary.scalar("Cost", cost))
     optimizer = tf.train.AdamOptimizer(
         learning_rate=learning_rate).minimize(cost)
     return {"cost": cost, "optimizer": optimizer, "dataset_resize_op": dataset["dataset_resize_op"], "iterator_initializer": iterator["initializer"], "summaries": summaries, "saved_variables": saved_variables}
 
 
-def train(sess, batch_size, train_number, iterator_initializer, optimizer, cost, file_writer, summaries):
+def train(sess, batch_size, last_train_summary_number, iterator_initializer, optimizer, cost, file_writer, summaries):
     """Train a neural network...
 
     Trains the neural network in sess. Executes the optimizer and cost operations until the iterator is empty.
 
     Args:
         batch_size: Size of the batch of the training dataset.
-        train_number: The number of the current training. It is going to be used for summaries, in the graphics generated
-            in tensorboard, the step number is this number, adding 1 each iteration of the training.
+        last_train_summary_number: The number to begin the summaries.
         iterator_initializer: It is used to initialize the iterator. So once it is initialized, the training begins.
         optimizer: This operation is used to adjust the neural networks weights, runs each iteration.
         cost: An operation that calcules the losses number on each iteration, comparing the label and the prediction. It is used
             to obtain the avg_cost of the training.
         file_writer: It has to be an instance of tf.summary.fileWriter(). It will save the summaries.
         summaries: This summaries are all the variables that will be saved with the file_writer. Has to be instance of tf.summary.merge
+        increment_dataset: The number of registers to increment each time the dataset is empty. This number is for the summaries number.
+        repeat: Number of times the dataset is repeated. This number is for the number of the summary.
 
     Returns:
         avg_cost: The average cost of the training.
+        last_train_summary_number: The number of the last summary addition.
 
     """
     sess.run(iterator_initializer)
@@ -93,14 +99,20 @@ def train(sess, batch_size, train_number, iterator_initializer, optimizer, cost,
     iterations = 0
     while True:
         try:
-            _, cost_aux = sess.run([optimizer, cost])
-            avg_cost += cost_aux
-            iterations += 1
             if iterations % 2 == 0:
-                summary_values = sess.run(summaries)
+                _, cost_aux, summary_values = sess.run(
+                    [optimizer, cost, summaries])
+                cost_aux = math.sqrt(cost_aux)
+                avg_cost += cost_aux
                 file_writer.add_summary(
-                    summary_values, train_number*10+iterations)
+                    summary_values, last_train_summary_number)
+            else:
+                _, cost_aux = sess.run([optimizer, cost])
+                cost_aux = math.sqrt(cost_aux)
+                avg_cost += cost_aux
+            iterations += 1
+            last_train_summary_number+=1
         except tf.errors.OutOfRangeError:
             avg_cost /= (iterations*batch_size)
             break
-    return avg_cost
+    return avg_cost, last_train_summary_number

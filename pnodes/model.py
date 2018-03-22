@@ -3,20 +3,22 @@
 import tensorflow as tf
 
 
-def create_matrix_summary(matrix, n_nodes):
+def create_matrix_summary(matrix, n_inputs, n_nodes):
     """Create a tf.summary.scalar of each weight in the matrix(layer)...
 
     Args:
         matrix: The weights tensor object.
         n_nodes: Number of weights that the matrix has.
+        n_inputs: Number of input neurones that the matrix has.
 
     Returns:
         A list of all the tf.summary.scalar of each weight in the layer.
 
     """
     summary = []
-    for i in range(n_nodes):
-        summary.append(tf.summary.scalar(str(i), matrix[0][i]))
+    for i in range(n_inputs):
+        for j in range(n_nodes):
+            summary.append(tf.summary.scalar("%d,%d"%(i, j), matrix[i][j]))
     return summary
 
 
@@ -44,10 +46,10 @@ def create_layer(name, inputs, n_inputs, n_nodes, activation, dropout, keep_prob
     with tf.variable_scope("hidden_layer_%s" % name, reuse=tf.AUTO_REUSE):
         with tf.variable_scope("weights_%s" % name):
             weights = tf.get_variable(name="weights", shape=[
-                n_inputs, n_nodes], initializer=tf.random_normal_initializer(mean=0.0, stddev=0.1) ) 
+                n_inputs, n_nodes], initializer=tf.random_normal_initializer(mean=0.0, stddev=0.1))
 
             saved_variables[weights.name] = weights
-            summary += create_matrix_summary(weights, n_nodes)
+            summary += create_matrix_summary(weights, n_inputs, n_nodes)
 
         with tf.variable_scope("biases_%s" % name):
             biases = tf.get_variable(name="biases", shape=[
@@ -55,7 +57,7 @@ def create_layer(name, inputs, n_inputs, n_nodes, activation, dropout, keep_prob
             saved_variables[biases.name] = biases
         with tf.variable_scope("output_%s" % name):
             output = tf.add(tf.matmul(inputs, weights), biases)
-            if activation !=None:
+            if activation != None:
                 output = activation(output)
             if dropout:
                 output = tf.nn.dropout(output, keep_prob=keep_prob)
@@ -78,22 +80,22 @@ def create_model(inputs, training):
     """
     n_inputs = 8
     n_outputs = 1
-    hidden_layers_nodes = [30, 2]
+    hidden_layers_nodes = [15, 10]
 
     summaries = []
     saved_variables = {}
 
     hidden_layer_1, summary_1, saved_variables_1 = create_layer(
-        "1", inputs, n_inputs, hidden_layers_nodes[0], tf.nn.sigmoid, training, 0.8)
+        "1", inputs, n_inputs, hidden_layers_nodes[0], tf.nn.relu, training, 0.9)
     hidden_layer_2, summary_2, saved_variables_2 = create_layer(
-        "2", hidden_layer_1, hidden_layers_nodes[0], hidden_layers_nodes[1], tf.nn.sigmoid, training, 0.8)
+        "2", hidden_layer_1, hidden_layers_nodes[0], hidden_layers_nodes[1], tf.nn.relu, training, 0.9)
 
     output_layer, summary_3, saved_variables_3 = create_layer(
-        "output", hidden_layer_2, hidden_layers_nodes[1], n_outputs, tf.nn.sigmoid, training, 0.8)
+        "output", hidden_layer_2, hidden_layers_nodes[1], n_outputs, tf.nn.sigmoid, training, 0.9)
     summaries += summary_1+summary_2+summary_3
 
     saved_variables.update(saved_variables_1)
     saved_variables.update(saved_variables_2)
     saved_variables.update(saved_variables_3)
-    
+
     return output_layer, summaries, saved_variables
