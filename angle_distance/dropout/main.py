@@ -70,12 +70,14 @@ def incremental_training(sess, saver, training_variables, testing_variables, ckp
     summaries_training = tf.summary.merge(training_variables["summaries"])
     file = open("./LOG.csv", "a+")
     data_buffer = []
+    last_test_summary_number = 0
+    last_train_summary_number = 0
     for train_number in range(1, 2000):  # 499483
         sess.run(training_variables["dataset_resize_op"])
-        avg_cost_train = train(sess, batch_size, train_number,
+        avg_cost_train, last_train_summary_number = train(sess, batch_size, last_train_summary_number,
                                training_variables["iterator_initializer"], training_variables["optimizer"], training_variables["cost"],  file_writer_train, summaries_training)
-        avg_cost_test = test(
-            sess, train_number, testing_variables["iterator_initializer"], testing_variables["cost_update"], file_writer_test, summaries_testing)
+        avg_cost_test, last_test_summary_number = test(
+            sess, last_test_summary_number, testing_variables["iterator_initializer"], testing_variables["cost_update"], file_writer_test, summaries_testing)
         data_log = "%d;%f;%f\n" % (
             train_number, avg_cost_train, avg_cost_test)
         data_buffer.append(data_log)
