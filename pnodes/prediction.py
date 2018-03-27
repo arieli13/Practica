@@ -42,7 +42,7 @@ def load_data(path):
 
 
 def execute_prediction():
-    dataset = load_data("./datasets/normalizado/pnode00_03000.txt")
+    dataset = load_data("./datasets/normalizado/pnode06_03000.txt")
     features = tf.placeholder(tf.float32, [None, 8])
     label = tf.placeholder(tf.float32, [None, 1])
     prediction, _, variables = create_model(features, False)

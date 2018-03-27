@@ -15,7 +15,7 @@ def create_testing_dataset():
 
     """
     complete_dataset = create_dataset(
-        "./datasets/normalizado/pnode00_03000_test.txt")
+        "./datasets/normalizado/pnode06_03000_test.txt")
     batched_dataset = complete_dataset.batch(1)
     return batched_dataset
 

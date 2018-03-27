@@ -7,7 +7,7 @@ from test import prepare_testing, test
 learning_rate = 0.001
 batch_size = 1
 increment_dataset = 1  # Number of registers to add to the next training
-repeat_dataset = 10
+repeat_dataset = 2
 
 
 def load_model(sess, saver, path):
@@ -76,7 +76,7 @@ def incremental_training(sess, saver, training_variables, testing_variables, ckp
     last_test_summary_number = 0
     last_train_summary_number = 0
     data_buffer = []
-    for train_number in range(1, 201):  # 499483
+    for train_number in range(1, 201): 
 
         sess.run(training_variables["dataset_resize_op"])
         avg_cost_train, last_train_summary_number = train(sess, batch_size, last_train_summary_number,

@@ -30,8 +30,8 @@ def create_training_dataset(batch_size, increment_dataset, repeat):
     dataset_resize_op = dataset_size.assign(
         tf.add(dataset_size, increment_dataset))
     complete_dataset = create_dataset(
-        "./datasets/normalizado/pnode00_03000_train.txt")  # Loads all training dataset
-    trainable_dataset = complete_dataset.take(dataset_size).repeat(10)
+        "./datasets/normalizado/pnode06_03000_train.txt")  # Loads all training dataset
+    trainable_dataset = complete_dataset.take(dataset_size).repeat(repeat)
     shuffled_dataset = trainable_dataset.shuffle(dataset_size)
     batched_dataset = shuffled_dataset.batch(batch_size)
     return {"dataset": batched_dataset, "dataset_resize_op": dataset_resize_op}

@@ -18,7 +18,8 @@ def create_matrix_summary(matrix, n_inputs, n_nodes):
     summary = []
     for i in range(n_inputs):
         for j in range(n_nodes):
-            summary.append(tf.summary.scalar("%d,%d"%(i, j), matrix[i][j]))
+            #summary.append(tf.summary.scalar("%d,%d"%(i, j), matrix[i][j]))
+            pass
     return summary
 
 
@@ -80,7 +81,7 @@ def create_model(inputs, training):
     """
     n_inputs = 8
     n_outputs = 1
-    hidden_layers_nodes = [15, 10]
+    hidden_layers_nodes = [20, 20]
 
     summaries = []
     saved_variables = {}
@@ -91,7 +92,7 @@ def create_model(inputs, training):
         "2", hidden_layer_1, hidden_layers_nodes[0], hidden_layers_nodes[1], tf.nn.relu, training, 0.9)
 
     output_layer, summary_3, saved_variables_3 = create_layer(
-        "output", hidden_layer_2, hidden_layers_nodes[1], n_outputs, tf.nn.sigmoid, training, 0.9)
+        "output", hidden_layer_2, hidden_layers_nodes[1], n_outputs, tf.nn.relu, False, 0.9)
     summaries += summary_1+summary_2+summary_3
 
     saved_variables.update(saved_variables_1)
