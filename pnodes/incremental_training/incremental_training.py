@@ -14,7 +14,9 @@ dropout_rate = [0.1, 0.1, 0.1]
 learning_rate = 0.001
 
 batch_size = 10
-iterations = 200
+iterations = 10
+
+increment_size = 10
 ##################
 training = tf.Variable(True)
 negate_training = tf.assign(training, tf.logical_not(training))
@@ -173,6 +175,65 @@ def train(sess, saver, ckpt):
         # iteration+=1
 
 
+def incremental_train(sess, saver, ckpt):
+    training_dataset_complete = load_dataset(dataset_train_path)
+    testing_dataset = load_dataset(dataset_test_path)
+    
+    training_dataset_complete_size = len(training_dataset_complete)
+    testing_dataset_size = len(testing_dataset)
+
+    assert increment_size >= batch_size
+
+    training_dataset = training_dataset_complete[:increment_size]
+
+    total_trainings = int(training_dataset_complete_size/increment_size)
+    
+    log = open("LOG.csv", "w+")
+    for train_number in range(total_trainings):
+        training_dataset = training_dataset_complete[:increment_size*(
+            train_number + 1)]
+        training_dataset_size = len(training_dataset)
+        total_epochs = int(
+            math.ceil(float(training_dataset_size)/float(batch_size)))
+
+        for iteration in range(iterations):
+            # iteration = 1
+            # while True:
+            min_index = 0
+            avg_cost_train = 0
+            random.shuffle(training_dataset)
+            # Begin training
+            for _ in range(total_epochs):
+                data = training_dataset[min_index:(min_index+batch_size)]
+                x = [i[0] for i in data]
+                y = [i[1] for i in data]
+                min_index += batch_size
+                _, cost_aux = sess.run(
+                    [optimizer, cost_mse], feed_dict={X: x, Y: y})
+                avg_cost_train += cost_aux
+
+            # Begin testing
+            avg_cost_test = 0
+            sess.run(negate_training)
+            for i in range(testing_dataset_size):
+                data = testing_dataset[i:i+1]
+                x = [i[0] for i in data]
+                y = [i[1] for i in data]
+                min_index += batch_size
+                cost_aux = sess.run(cost_rmse, feed_dict={X: x, Y: y})
+                avg_cost_test += cost_aux
+            sess.run(negate_training)
+            print "Train: %d\tIteration: %d\ttrain cost: %f\ttest cost: %f" % (
+                train_number, iteration,
+                avg_cost_train/training_dataset_size,
+                avg_cost_test/testing_dataset_size)
+            ckpt += 1
+            save_model(sess, saver, "./checkpoints/", ckpt)
+            log.write("%d;%f;%f\n" % ((iteration+1)*(train_number+1), avg_cost_train /
+                                      training_dataset_size,
+                                      avg_cost_test/testing_dataset_size))
+
+
 def test():
     full_dataset = load_dataset(dataset_full_path)
     full_dataset_size = len(full_dataset)
@@ -194,7 +255,7 @@ with tf.Session() as sess:
 
     saver = tf.train.Saver(saved_variables)
     ckpt = load_model(sess, saver, "./checkpoints/")
-    train(sess, saver, ckpt)
+    incremental_train(sess, saver, ckpt)
     test()
 
 # plot "LOG.csv" using 2 with lines title "train", "" using 3 with lines title "test"
