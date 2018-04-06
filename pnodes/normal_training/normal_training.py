@@ -1,3 +1,6 @@
+"""Execute an typical training for a nn."""
+# !/usr/bin/env
+
 import tensorflow as tf
 import math
 import random
@@ -24,6 +27,17 @@ Y = tf.placeholder(tf.float32, [None, n_outputs])
 
 
 def load_dataset(path):
+    """
+    Create a dataset from a csv.
+
+    The path is of an existing csv, each line separated by carriage return and each column separeted by blank space. Nine cols.
+
+    Args:
+        path: the path of the csv.
+
+    Return:
+        dataset: A list. Structure: [ [ [input], [label] ], [[input], [label]] ]
+    """
     dataset = []
     with open(path) as f:
         lines = f.readlines()
@@ -39,6 +53,21 @@ def load_dataset(path):
 
 def create_layer(inputs, n_inputs_nodes, n_nodes, activation_function=None,
                  rate_prob=None):
+    """
+    Create a layer for a neural network.
+
+    Args:
+        inputs: The variable to multiply by the weights of the layer.
+        n_inputs_nodes: Number of nodes of the inputs.
+        n_nodes: Number of nodes for the new layer.
+        activation_function: If None than the layer does not have activation function else the activation function is this one.
+        rate_prob: If None than the layer does not have dropout else it does, with this rate probability (% of input units to dropout)
+
+    Return:
+        w: Weight variable.
+        b: Biases variable.
+        o: New layer.
+    """
     w = tf.Variable(tf.random_normal(
         [n_inputs_nodes, n_nodes], 0.0, 0.1, tf.float32))
     b = tf.Variable(tf.random_normal([n_nodes], 0.0, 0.1, tf.float32))
@@ -52,7 +81,20 @@ def create_layer(inputs, n_inputs_nodes, n_nodes, activation_function=None,
 
 
 def create_model():
+    """
+    Create a new neuronal network.
 
+    It uses the variables: n_inputs, hidden_layers_nodes, dropout_rate and
+    n_outputs; to create each layer. Those are defined at the top of the file.
+    Each variables that is created, is stored in a dictionary to be saved or 
+    loaded later.
+    Also uses the placeholders X and Y. X: inputs, Y:labels. They are defined 
+    at the top of the file too.
+
+    Return:
+        layer: The output layer of the neuronal net.
+        saved_variables: The variables to be saved.
+    """
     saved_variables = {}
 
     w, b, layer = create_layer(X, n_inputs, hidden_layers_nodes[0], tf.nn.relu,
@@ -121,6 +163,19 @@ _, cost_rmse = tf.metrics.root_mean_squared_error(Y, prediction)
 
 
 def train(sess, saver, ckpt):
+    """
+    Execute an typical training.
+
+    First loads the full training dataset and the testing dataset. Trains the neuronal net with
+    the registers, and iterates the number of times that the variable
+    iteration has. All the variables (batch_size, iterations)
+    are defined at the top of the file.
+
+    Args:
+        sess: The tf.Session() where the training will be executed.
+        saver: The one who saves the variables.
+        ckpt: The next checkpoint of the saved variables.
+    """
     training_dataset = load_dataset(dataset_train_path)
     testing_dataset = load_dataset(dataset_test_path)
 
@@ -170,10 +225,16 @@ def train(sess, saver, ckpt):
                                   training_dataset_size,
                                   avg_cost_test/testing_dataset_size))
 
-        # iteration+=1
 
+def test(sess):
+    """
+    Tests the neuronal net with the full dataset.
 
-def test():
+    Calculates the root mean squared error.
+
+    Args:
+        sess: The tf.Session() where the testing will be executed.
+    """
     full_dataset = load_dataset(dataset_full_path)
     full_dataset_size = len(full_dataset)
     avg_cost = 0
@@ -188,13 +249,17 @@ def test():
     print "Full dataset avg cost rmse: %f" % (avg_cost/full_dataset_size)
 
 
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-    sess.run(tf.local_variables_initializer())
+def main():
+    """Execute program."""
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
 
-    saver = tf.train.Saver(saved_variables)
-    ckpt = load_model(sess, saver, "./checkpoints/")
-    train(sess, saver, ckpt)
-    test()
+        saver = tf.train.Saver(saved_variables)
+        ckpt = load_model(sess, saver, "./checkpoints/")
+        train(sess, saver, ckpt)
+        test(sess)
 
-# plot "LOG.csv" using 2 with lines title "train", "" using 3 with lines title "test"
+
+if __name__ == '__main__':
+    main()
