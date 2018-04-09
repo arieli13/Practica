@@ -9,7 +9,7 @@ dataset_path = "../datasets/normalizado/pnode06_03000"
 dataset_train_path = dataset_path+"_train.txt"
 dataset_test_path = dataset_path+"_test.txt"
 dataset_full_path = dataset_path+".txt"
-
+logs_dir = "./logs/"
 ##################
 n_inputs = 8
 n_outputs = 1
@@ -24,7 +24,8 @@ iterations = 2
 increment_size = 1
 ##################
 training = tf.Variable(True)
-negate_training = tf.assign(training, tf.logical_not(training))
+mode = tf.placeholder(tf.bool)
+training_mode_op = tf.assign(training, mode)
 
 X = tf.placeholder(tf.float32, [None, n_inputs])
 Y = tf.placeholder(tf.float32, [None, n_outputs])
@@ -55,8 +56,30 @@ def load_dataset(path):
     return dataset
 
 
-def create_layer(inputs, n_inputs_nodes, n_nodes, activation_function=None,
-                 rate_prob=None):
+def create_matrix_summary(matrix, n_inputs, n_nodes, max_summaries=20):
+    """Create a tf.summary.scalar of each weight in the matrix(layer)...
+
+    Args:
+        matrix: The weights tensor object.
+        n_nodes: Number of weights that the matrix has.
+        n_inputs: Number of input neurones that the matrix has.
+        max_summaries: The number of nodes to save summaries.
+
+    Returns:
+        A list of all the tf.summary.scalar of each weight in the layer.
+
+    """
+    summary = []
+    for i in range(n_inputs):
+        for j in range(n_nodes):
+            summary.append(tf.summary.scalar("%d,%d" % (i, j), matrix[i][j]))
+    if max_summaries < len(summary):
+        summary = random.sample(summary, max_summaries)
+    return summary
+
+
+def create_layer(inputs, n_inputs_nodes, n_nodes, name, activation_function=None,
+                 rate_prob=None, num_summaries=10):
     """
     Create a layer for a neural network.
 
@@ -64,6 +87,7 @@ def create_layer(inputs, n_inputs_nodes, n_nodes, activation_function=None,
         inputs: The variable to multiply by the weights of the layer.
         n_inputs_nodes: Number of nodes of the inputs.
         n_nodes: Number of nodes for the new layer.
+        name: The name of the scope.
         activation_function: If None than the layer does not have activation function else the activation function is this one.
         rate_prob: If None than the layer does not have dropout else it does, with this rate probability (% of input units to dropout)
 
@@ -71,17 +95,20 @@ def create_layer(inputs, n_inputs_nodes, n_nodes, activation_function=None,
         w: Weight variable.
         b: Biases variable.
         o: New layer.
+        summary: The summary of the weights
     """
-    w = tf.Variable(tf.random_normal(
-        [n_inputs_nodes, n_nodes], 0.0, 0.1, tf.float32))
-    b = tf.Variable(tf.random_normal([n_nodes], 0.0, 0.1, tf.float32))
-    o = tf.add(tf.matmul(inputs, w), b)
-    if activation_function is not None:
-        o = activation_function(o)
-    if rate_prob is not None:
-        o = tf.layers.dropout(o, rate_prob,
-                              training=training)
-    return w, b, o
+    with tf.name_scope(name):
+        w = tf.Variable(tf.random_normal(
+            [n_inputs_nodes, n_nodes], 0.0, 0.1, tf.float32))
+        summary = create_matrix_summary(w, n_inputs_nodes, n_nodes)
+        b = tf.Variable(tf.random_normal([n_nodes], 0.0, 0.1, tf.float32))
+        o = tf.add(tf.matmul(inputs, w), b)
+        if activation_function is not None:
+            o = activation_function(o)
+        if rate_prob is not None:
+            o = tf.layers.dropout(o, rate_prob,
+                                training=training)
+        return w, b, o, summary
 
 
 def create_model():
@@ -98,27 +125,31 @@ def create_model():
     Return:
         layer: The output layer of the neuronal net.
         saved_variables: The variables to be saved.
+        summary_variables: Variables to save the summary of them.
     """
     saved_variables = {}
+    summary_variables = []
 
-    w, b, layer = create_layer(X, n_inputs, hidden_layers_nodes[0], tf.nn.relu,
-                               dropout_rate[0])
+    w, b, layer, summary = create_layer(X, n_inputs, hidden_layers_nodes[0], 
+                                        "HL1", tf.nn.relu, dropout_rate[0])
+    summary_variables += summary
     saved_variables[w.name] = w
     saved_variables[b.name] = b
 
     for i in range(1, len(hidden_layers_nodes)):
-        w, b, layer = create_layer(
+        w, b, layer, summary = create_layer(
             layer, hidden_layers_nodes[i-1], hidden_layers_nodes[i],
-            tf.nn.relu, dropout_rate[i])
+            "HL"+str(i+1), tf.nn.relu, dropout_rate[i])
+        summary_variables += summary
         saved_variables[w.name] = w
         saved_variables[b.name] = b
 
-    w, b, layer = create_layer(
-        layer, hidden_layers_nodes[-1], n_outputs, tf.nn.sigmoid, None)
+    w, b, layer, summary = create_layer(
+        layer, hidden_layers_nodes[-1], n_outputs, "output", tf.nn.sigmoid, None)
+    summary_variables += summary
     saved_variables[w.name] = w
     saved_variables[b.name] = b
-
-    return layer, saved_variables
+    return layer, saved_variables, summary_variables
 
 
 def save_model(sess, saver, path, ckpt):
@@ -158,7 +189,7 @@ def load_model(sess, saver, path):
         return ckpt
 
 
-prediction, saved_variables = create_model()
+prediction, saved_variables, summary_variables = create_model()
 cost_mse = tf.losses.mean_squared_error(labels=Y, predictions=prediction)
 
 optimizer = tf.train.AdamOptimizer(
@@ -195,6 +226,12 @@ def incremental_train(sess, saver, ckpt):
     total_trainings = int(training_dataset_complete_size/increment_size)
 
     log = open("LOG.csv", "w+")
+    global summary_variables
+    summary_variables = tf.summary.merge(summary_variables)
+    file_writer = tf.summary.FileWriter(logs_dir, sess.graph)
+
+    summary_number = 0
+
     for train_number in range(total_trainings):
         training_dataset = training_dataset_complete[:increment_size*(
             train_number + 1)]
@@ -206,19 +243,20 @@ def incremental_train(sess, saver, ckpt):
             min_index = 0
             avg_cost_train = 0
             random.shuffle(training_dataset)
+            sess.run(training_mode_op, feed_dict={mode: True})  # NN in training mode
             # Begin training
             for _ in range(total_epochs):
                 data = training_dataset[min_index:(min_index+batch_size)]
                 x = [i[0] for i in data]
                 y = [i[1] for i in data]
                 min_index += batch_size
-                _, cost_aux = sess.run(
-                    [optimizer, cost_mse], feed_dict={X: x, Y: y})
+                _, cost_aux, summaries = sess.run(
+                    [optimizer, cost_mse, summary_variables], feed_dict={X: x, Y: y})
                 avg_cost_train += cost_aux
 
             # Begin testing
             avg_cost_test = 0
-            sess.run(negate_training)
+            sess.run(training_mode_op, feed_dict={mode: False})  # NN in testing mode
             for i in range(testing_dataset_size):
                 data = testing_dataset[i:i+1]
                 x = [i[0] for i in data]
@@ -226,16 +264,17 @@ def incremental_train(sess, saver, ckpt):
                 min_index += batch_size
                 cost_aux = sess.run(cost_rmse, feed_dict={X: x, Y: y})
                 avg_cost_test += cost_aux
-            sess.run(negate_training)
             print "Train: %d\tIteration: %d\ttrain cost: %f\ttest cost: %f" % (
                 train_number, iteration,
                 avg_cost_train/training_dataset_size,
                 avg_cost_test/testing_dataset_size)
             ckpt += 1
             save_model(sess, saver, "./checkpoints/", ckpt)
-            log.write("%d;%f;%f\n" % ((iteration+1)*(train_number+1), avg_cost_train /
-                                      training_dataset_size,
+            log.write("%d;%f;%f\n" % ((iteration+1)*(train_number+1),
+                                      avg_cost_train / training_dataset_size,
                                       avg_cost_test/testing_dataset_size))
+            file_writer.add_summary(summaries, summary_number)
+            summary_number += 1
 
 
 def test(sess):
@@ -252,7 +291,7 @@ def test(sess):
     avg_cost = 0
 
     predictions = open("predictions.csv", "w+")
-    sess.run(negate_training)
+    sess.run(training_mode_op, feed_dict={mode: False})  # NN in testing mode
     for data in full_dataset:
         predic, cost_aux = sess.run([prediction, cost_rmse], feed_dict={
                                     X: [data[0]], Y: [data[1]]})
