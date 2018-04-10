@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.python import pywrap_tensorflow
 from tensorflow.python.tools import inspect_checkpoint as chkp
 import re
 
@@ -6,11 +7,32 @@ cli_str = ">> "
 
 load_dir = ""
 save_dir = "./default/"
-model = {} # {name:variable}
-layer = {}  # name:variable
-weight = {}  # name:variable
+model = []
+selected_layer = []
+weight = []
+global_variables = []
 last_commands = []
 
+def create_new_variables(file_name, tensor_name, all_tensors, all_tensor_names=False):
+    try:
+        dictionary = {}
+        variables_names = []
+        variables = []
+        reader = pywrap_tensorflow.NewCheckpointReader(file_name)
+        var_to_shape_map = reader.get_variable_to_shape_map()
+        for key in sorted(var_to_shape_map):
+            key_aux = key.split("/")
+            var = (key_aux[-1].split(":")[0],  "".join(key_aux[:len(key_aux)-1]))
+            variables_names.append(var)
+
+            with tf.name_scope(var[1]):
+                variables.append(tf.Variable(reader.get_tensor(key), name=var[0]))
+                
+        return variables
+    except Exception as e:
+        print e.message
+            
+            
 def help_function():
     string = "model -> Shows the model info."
 
@@ -18,7 +40,11 @@ def model(command):
     print "MODEL"
 
 def layer(command):
-    print command
+    global selected_layer, global_variables
+    if len(global_variables) == 0:
+        print "Variables not loaded"
+    else:
+        pass
 
 def weight(command):
     print "WEIGHT"
@@ -29,23 +55,29 @@ def evaluate(command):
 def save(command):
     print "SAVE"
 
-def load(command, sess, saver):
+def load_aux(dir, sess):
+    try:
+        global global_variables, load_dir
+        global_variables = create_new_variables(tf.train.latest_checkpoint(dir), tensor_name='', all_tensors=False, all_tensor_names=True)
+        sess.run(tf.global_variables_initializer())
+        load_dir = dir
+        for i in global_variables:
+            print i.name
+        print "Variables successfully loaded"
+    except Exception as e:
+        print e.message
+
+def load(command, sess):
     if len(command) == 1:
+        global load_dir
         if load_dir == "":
             print "Could not load. No path available."
         else:
-            pass
+            load_aux(load_dir, sess)
     else:
-        try:
-            #saver.restore(sess, tf.train.latest_checkpoint(command[1]))
-            tf.Variable(tf.random_normal(shape=[1, 1]), name="output/Variable:0")
-            chkp.print_tensors_in_checkpoint_file(tf.train.latest_checkpoint(command[1]), tensor_name='HL2', all_tensors=True, all_tensor_names=True)
-            
-            print "Model succesfully saved"
-        except Exception as e:
-            print e.message
+        load_aux(command[1], sess)
 
-def command_line(data):
+def command_line(sess):
     command = raw_input(cli_str)
     last_commands.append(command)
 
@@ -60,20 +92,14 @@ def command_line(data):
     elif re.match( "save\s*$|save\s[^\s]+$", command):
         save(re.split("\s", command))
     elif re.match( "load\s*$|load\s[^\s]+$", command):
-        load(re.split("\s", command), data["sess"], data["saver"])
+        load(re.split("\s", command), sess)
     else:
         print "Could not recognize command"
 
 def main():
     with tf.Session() as sess:
-        x = tf.Variable(12)
-        sess.run(tf.global_variables_initializer())
-        saver = tf.train.Saver()
-        data = {}
-        data["sess"] = sess
-        data["saver"] = saver
         while True:
-            command_line(data)
+            command_line(sess)
 
 if __name__ == '__main__':
     main()

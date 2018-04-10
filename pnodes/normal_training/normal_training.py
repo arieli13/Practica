@@ -5,18 +5,18 @@ import tensorflow as tf
 import math
 import random
 
-dataset_train_path = "../datasets/normalizado/pnode05_03000_train.txt"
-dataset_test_path = "../datasets/normalizado/pnode05_03000_test.txt"
-dataset_full_path = "../datasets/normalizado/pnode05_03000.txt"
-
+dataset_path = "../datasets/normalizado/pnode06_03000"
+dataset_train_path = dataset_path+"_train.txt"
+dataset_test_path = dataset_path+"_test.txt"
+dataset_full_path = dataset_path+".txt"
 logs_dir = "./logs/"
 ##################
 n_inputs = 8
 n_outputs = 1
-hidden_layers_nodes = [20, 20, 20]
-dropout_rate = [0.1, 0.1, 0.1]
+hidden_layers_nodes = [20, 20]
+dropout_rate = [0.1, 0.1]
 
-learning_rate = 0.001
+learning_rate = 0.01
 
 batch_size = 10
 iterations = 200
@@ -97,9 +97,9 @@ def create_layer(inputs, n_inputs_nodes, n_nodes, name, activation_function=None
     """
     with tf.name_scope(name):
         w = tf.Variable(tf.random_normal(
-            [n_inputs_nodes, n_nodes], 0.0, 0.1, tf.float32))
+            [n_inputs_nodes, n_nodes], 0.0, 0.1, tf.float32), name="weight")
         summary = create_matrix_summary(w, n_inputs_nodes, n_nodes)
-        b = tf.Variable(tf.random_normal([n_nodes], 0.0, 0.1, tf.float32))
+        b = tf.Variable(tf.random_normal([n_nodes], 0.0, 0.1, tf.float32), name="biases")
         o = tf.add(tf.matmul(inputs, w), b)
         if activation_function is not None:
             o = activation_function(o)
@@ -227,8 +227,6 @@ def train(sess, saver, ckpt):
     file_writer = tf.summary.FileWriter(logs_dir, sess.graph)
     summary_number = 0
     for iteration in range(iterations):
-        # iteration = 1
-        # while True:
         min_index = 0
         avg_cost_train = 0
         random.shuffle(training_dataset)
