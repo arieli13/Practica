@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow.python import pywrap_tensorflow
 from tensorflow.python.tools import inspect_checkpoint as chkp
 import re
+from LogClass import LogClass
 
 cli_str = ">> "
 
