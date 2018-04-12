@@ -4,9 +4,10 @@
 
 from __future__ import print_function
 import os
-os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin'
 import neat
 import visualize
+os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin'
+
 
 
 # 2-input XOR inputs and expected outputs.
@@ -39,7 +40,7 @@ def run(config_file):
     p.add_reporter(neat.Checkpointer(5))
 
     # Run for up to 300 generations.
-    winner = p.run(eval_genomes, 300)
+    winner = p.run(eval_genomes, 1)
 
     # Display the winning genome.
     print('\nBest genome:\n{!s}'.format(winner))
