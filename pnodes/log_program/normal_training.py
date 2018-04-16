@@ -29,6 +29,8 @@ training_mode_op = tf.assign(training, mode)
 X = tf.placeholder(tf.float32, [None, n_inputs])
 Y = tf.placeholder(tf.float32, [None, n_outputs])
 
+global sess
+
 
 def load_dataset(path):
     """
@@ -193,7 +195,8 @@ cost_mse = tf.losses.mean_squared_error(labels=Y, predictions=prediction)
 optimizer = tf.train.AdamOptimizer(
     learning_rate=learning_rate).minimize(cost_mse)
 
-_, cost_rmse = tf.metrics.root_mean_squared_error(Y, prediction)
+#_, cost_rmse = tf.metrics.root_mean_squared_error(Y, prediction)
+cost_rmse = tf.losses.mean_squared_error(labels=Y, predictions=prediction)
 
 
 def train(sess, saver, ckpt):
@@ -263,7 +266,6 @@ def train(sess, saver, ckpt):
         file_writer.add_summary(summaries, summary_number)
         summary_number += 1
 
-
 def test(sess):
     """
     Tests the neuronal net with the full dataset.
@@ -284,8 +286,10 @@ def test(sess):
                                     X: [data[0]], Y: [data[1]]})
         predictions.write("%f;%f\n" % (predic[0][0], data[1][0]))
         avg_cost += cost_aux
-    print "Full dataset avg cost rmse: %f" % (avg_cost/full_dataset_size)
+    print "Full dataset avg cost rmse: %f" % (math.sqrt(avg_cost/full_dataset_size))
 
+def func(function, function_args):
+    return function(*function_args)
 
 def main():
     """Execute program."""
@@ -293,12 +297,13 @@ def main():
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
 
-        #saver = tf.train.Saver(saved_variables)
-        #ckpt = load_model(sess, saver, "./checkpoints/")
+        saver = tf.train.Saver(saved_variables)
+        ckpt = load_model(sess, saver, "./checkpoints/")
         #train(sess, saver, ckpt)
         #test(sess)
-        log_class = LogClass(sess, prediction)
+        log_class = LogClass(sess, prediction, lambda: test(sess))
         log_class.command_line()
+        test(sess)
 
 
 if __name__ == '__main__':
