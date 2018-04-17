@@ -18,8 +18,21 @@ class LogClass:
         self._save_ckpt = 0
     
     
-    def help_function(self):
-        string = "model -> Shows the model info."
+    def help(self):
+        string = "\tCommand\t\t\t\t\tDescription\n"
+        string += "\tvs\t\t\t\t\tShow all variables available\n"
+        string += "\tv select [variable_number]\t\tSelect a variable\n"
+        string += "\tv\t\t\t\t\tShow the selected variable\n"
+        string += "\tv [number,]\t\t\t\tShow the index of the selected variable\n"
+        string += "\tv [number,]+ (operation) number\t\tSelect the indices and assign new value to a weigth\n\t\t\t\t\t\tof the selected variable. Operation can be: =, +=, -=, *=, /=\n"
+        string += "\tv undo\t\t\t\t\tUndo a previous operation made on the selected variable\n"
+        string += "\tv restore\t\t\t\tRestore the selected variable to its original state\n"
+        string += "\tm undo\t\t\t\t\tUndo a previous operation made on the variables\n"
+        string += "\tt\t\t\t\t\tExecutes the function of test\n"
+        string += "\ts path saved_variables\t\t\tAssign the path for saving and the number of the variables to be saved\n"
+        string += "\ts\t\t\t\t\tSave the selected variables on the specified path\n"
+        string += "\texit\t\t\t\t\tGet out of the program\n"
+        print string
 
     
     def model_undo(self):
@@ -185,8 +198,6 @@ class LogClass:
             print "%d.\t%s"%(number, i)
             number += 1
 
-    def weight(self, command):
-        print "WEIGHT"
 
     def test(self):
         if self._test_function is not list:
@@ -269,17 +280,17 @@ class LogClass:
                 self.variable_undo()
             else:
                 print "Could not recognize command"
-        elif re.match("weight\s[\w]+$|weight\s[\w]+\s[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$", command):
-            self.weight([x for x in command.split(" ")[1:] if x])
-        elif re.match("test\s*$", command):
+        elif re.match("t\s*$", command):
             self.test()
-        elif re.match("save\s+\S+\s+(\d,|\d)+$", command):
+        elif re.match("s\s+\S+\s+(\d,|\d)+$", command):
             self.save_config(command)
-        elif re.match("save\s*$", command):
+        elif re.match("s\s*$", command):
             self.save()
+        elif re.match("h\s*$", command):
+            self.help()
         elif re.match("exit\s*$", command):
             return
         else:
-            print "Could not recognize command"
+            print "Could not recognize command. Type h for help"
         self.command_line()
         
