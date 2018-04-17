@@ -301,7 +301,7 @@ def main():
         ckpt = load_model(sess, saver, "./checkpoints/")
         #train(sess, saver, ckpt)
         #test(sess)
-        log_class = LogClass(sess, prediction, lambda: test(sess))
+        log_class = LogClass(sess, lambda: test(sess))
         log_class.command_line()
         test(sess)
 

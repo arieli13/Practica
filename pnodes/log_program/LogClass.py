@@ -6,105 +6,217 @@ import re
 
 class LogClass:
 
-    def __init__(self, sess, prediction, test_function):
+    
+    def __init__(self, sess, test_function):
         self._sess = sess
         self._variable = None
-        self._prediction = prediction
         self._test_function = test_function
-
+        self._logs = []
+        self._save_dir = None
+        self._save_variables = []
         self._cli_str = ">> "
+        self._save_ckpt = 0
+    
     
     def help_function(self):
         string = "model -> Shows the model info."
 
-    def model(self, command):
-        print "MODEL"
+    
+    def model_undo(self):
+        try:
+            variables = {}
+            tf_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+            for i in range(len(tf_variables)):
+                variables[tf_variables[i].name] = tf_variables[i]
 
-    def variable(self, command):
-        if len(command) == 0:
+            if len(self._logs) > 0:
+                variable = self._logs.pop()
+                self._sess.run(tf.assign(variables[variable["name"]], variable["data"]))
+            else:
+                print "The model is in its original state"
+        except Exception as e:
+            print "An error raised: %s"%(e.message)
+    
+
+    def model_restore(self):
+        try:
+            variables = {}
+            tf_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+            for i in range(len(tf_variables)):
+                variables[tf_variables[i].name] = tf_variables[i]
+
+            if len(self._logs) > 0:
+                for log in self._logs:
+                    print log["name"]
+                    self._sess.run(tf.assign(variables[log["name"]], log["data"]))
+                self._logs = []
+            else:
+                print "The model is in its original state"
+        except Exception as e:
+            print "An error raised: %s"%(e.message)
+
+
+    def create_log(self):
+        log = {}
+        log["name"] = self._variable.name
+        log["data"] = self._sess.run(self._variable)
+        return log
+
+    
+    def get_command(self, command):
+        command = command.split(" ")
+        command = [x for x in command if x]
+        return command
+
+    def variable_select(self, command):
+        try:
+            command = self.get_command(command)
+            self._variable = None
+            self._variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)[int(command[2])]
+        except Exception as e:
+            print "An error raised: %s"%(e.message)
+    
+    
+    def variable_view(self, command):
+        try:
             if self._variable is None:
                 print "No variable selected"
             else:
-                try:
+                command = self.get_command(command)
+                if len(command) == 1:
                     print self._sess.run(self._variable)
                     print self._variable
-                except Exception as e:
-                    print "An error raised: %s"%(e.message)
-        
-        elif len(command) == 3:
-            if self._variable is None:
-                print "No variable selected"
-            else:
-                try:
-
-                    indices = [[int(x) for x in command[0].split(",") if x]]
-
-                    if command[1] == "=":
-                        constant_one = tf.constant(1.0, shape=self._variable.shape)
-                        value_neg_one = -1.0
-                        delta = tf.SparseTensor(indices, [value_neg_one], self._variable.shape)
-                        result = constant_one + tf.sparse_tensor_to_dense(delta)
-                        result = self._variable * result
-                        new_value = float(command[2])
-                        delta = tf.SparseTensor(indices, [new_value], self._variable.shape)
-                        result = result + tf.sparse_tensor_to_dense(delta)
-                    elif command[1] == "+=":
-                        constant_zero = tf.constant(0.0, shape=self._variable.shape)
-                        new_value = float(command[2])
-                        delta = tf.SparseTensor(indices, [new_value], self._variable.shape)
-                        result = constant_zero + tf.sparse_tensor_to_dense(delta)
-                        result = self._variable + result
-                    elif command[1] == "-=":
-                        constant_zero = tf.constant(0.0, shape=self._variable.shape)
-                        new_value = float(command[2])
-                        delta = tf.SparseTensor(indices, [new_value], self._variable.shape)
-                        result = constant_zero + tf.sparse_tensor_to_dense(delta)
-                        result = self._variable - result
-                    elif command[1] == "*=":
-                        constant_one = tf.constant(1.0, shape=self._variable.shape)
-                        new_value = float(command[2])-1.0
-                        delta = tf.SparseTensor(indices, [new_value], self._variable.shape)
-                        result = constant_one + tf.sparse_tensor_to_dense(delta)
-                        result = self._variable * result
-                    elif command[1] == "/=":
-                        constant_one = tf.constant(1.0, shape=self._variable.shape)
-                        new_value = float(command[2])-1.0
-                        delta = tf.SparseTensor(indices, [new_value], self._variable.shape)
-                        result = constant_one + tf.sparse_tensor_to_dense(delta)
-                        result = self._variable / result
-                    self._sess.run(tf.assign(self._variable, result))
-
-                except Exception as e:
-                    print "Error: %s" % (e.message)
-        else:
-            try:
-                if command[0][-1] == ",":
-                    indices = command[0][:len(command[0])-1]
-                    indices = [int(x) for x in indices.split(",")]
+                else:
+                    indices = command[1]
+                    indices = [int(x) for x in indices.split(",") if x]
                     view_tensor = self._variable[indices[0]]
                     for index in indices[1:]:
                         view_tensor = view_tensor[index]
                     print self._sess.run(view_tensor)
-                else:
-                    self._variable = None
-                    self._variable = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)[int(command[0])]
+        except Exception as e:
+            print "An error raised: %s"%(e.message)
+    
+    
+    def variable_restore(self):
+        if self._variable is None:
+            print "No variable selected"
+        else:
+            try:
+                index = 0
+                while index < len(self._logs):
+                    if(self._logs[index]["name"] == self._variable.name):
+                        self._sess.run(tf.assign(self._variable, self._logs[index]["data"]))
+                        del self._logs[index]
+                        index = 0
+                print "Variable restored"
             except Exception as e:
                 print "An error raised: %s"%(e.message)
+    
+    
+    def variable_undo(self):
+        if self._variable is None:
+            print "No variable selected"
+        else:
+            try:
+                tamannio_logs = len(self._logs)
+                while tamannio_logs > 0:
+                    if(self._logs[tamannio_logs-1]["name"] == self._variable.name):
+                        self._sess.run(tf.assign(self._variable, self._logs[tamannio_logs-1]["data"]))
+                        del self._logs[tamannio_logs-1]
+                        return
+                    tamannio_logs -= 1
+                print "Variable is in its original state"
+            except Exception as e:
+                print "An error raised: %s"%(e.message)
+    
+    
+    def variable_assign(self, command):
+        if self._variable is None:
+            print "No variable selected"
+        else:
+            command = self.get_command(command)
+            try:
+                log = self.create_log()
+                indices = [[int(x) for x in command[1].split(",") if x]]
 
-        
+                if command[2] == "=":
+                    constant_one = tf.constant(1.0, shape=self._variable.shape)
+                    value_neg_one = -1.0
+                    delta = tf.SparseTensor(indices, [value_neg_one], self._variable.shape)
+                    result = constant_one + tf.sparse_tensor_to_dense(delta)
+                    result = self._variable * result
+                    new_value = float(command[3])
+                    delta = tf.SparseTensor(indices, [new_value], self._variable.shape)
+                    result = result + tf.sparse_tensor_to_dense(delta)
+                elif command[2] == "+=":
+                    constant_zero = tf.constant(0.0, shape=self._variable.shape)
+                    new_value = float(command[3])
+                    delta = tf.SparseTensor(indices, [new_value], self._variable.shape)
+                    result = constant_zero + tf.sparse_tensor_to_dense(delta)
+                    result = self._variable + result
+                elif command[2] == "-=":
+                    constant_zero = tf.constant(0.0, shape=self._variable.shape)
+                    new_value = float(command[3])
+                    delta = tf.SparseTensor(indices, [new_value], self._variable.shape)
+                    result = constant_zero + tf.sparse_tensor_to_dense(delta)
+                    result = self._variable - result
+                elif command[2] == "*=":
+                    constant_one = tf.constant(1.0, shape=self._variable.shape)
+                    new_value = float(command[3])-1.0
+                    delta = tf.SparseTensor(indices, [new_value], self._variable.shape)
+                    result = constant_one + tf.sparse_tensor_to_dense(delta)
+                    result = self._variable * result
+                elif command[2] == "/=":
+                    constant_one = tf.constant(1.0, shape=self._variable.shape)
+                    new_value = float(command[3])-1.0
+                    delta = tf.SparseTensor(indices, [new_value], self._variable.shape)
+                    result = constant_one + tf.sparse_tensor_to_dense(delta)
+                    result = self._variable / result
+                self._sess.run(tf.assign(self._variable, result))
+                self._logs.append(log)
+
+            except Exception as e:
+                print "Error: %s" % (e.message)
+
     def variables(self):
         print "Avaliable variables:"
+        number = 0
         for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
-            print i
+            print "%d.\t%s"%(number, i)
+            number += 1
 
     def weight(self, command):
         print "WEIGHT"
 
     def test(self):
-        self._test_function()
+        if self._test_function is not list:
+            self._test_function()
 
-    def save(self, command):
-        print "SAVE"
+    def save(self):
+        try:
+            if self._save_dir is None:
+                print "No save direction available"
+            elif len(self._save_variables) == 0:
+                print "No save variables available"
+            else:
+                tf_variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+                saved_variables = {}
+                for index in self._save_variables:
+                    variable = tf_variables[index]
+                    saved_variables[variable.name] = variable
+                saver = tf.train.Saver(saved_variables)
+                saver.save(self._sess, self._save_dir, global_step=self._save_ckpt)
+                self._save_ckpt += 1
+        except Exception as e:
+            print "An error raised: %s"%(e.message)
+
+    def save_config(self, command):
+        command = self.get_command(command)
+        try:
+            self._save_dir = command[1]
+            self._save_variables = [int(x) for x in command[2].split(",") if x]
+        except Exception as e:
+            print "An error raised: %s"%(e.message) 
 
     def load_aux(self, dir, sess):
         """try:
@@ -136,24 +248,38 @@ class LogClass:
     def command_line(self):
         command = raw_input(self._cli_str)
 
-        if re.match("model\s*$", command):
-            self.model([x for x in command.split(" ")[1:] if x])
-        elif re.match("variable\s*$|variable\s+(\d,)+$|variable\s+[\d,]+$|variable\s+(\d,)+\s*(=|\+=|-=|\*=|/=)\s*[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$", command):
-            self.variable([x for x in command.split(" ")[1:] if x])
+        if re.match("m\s+undo\s*$", command):
+            self.model_undo()
+        elif re.match("m\s+restore\s*$", command):
+            self.model_restore()
+        elif re.match("vs\s*$", command):
+            self.variables()
+        elif re.match("v", command):
+            if re.match("v\s*$", command):
+                self.variable_view(command)
+            elif re.match("v\s+(\d,|\d)+\s*$", command):
+                self.variable_view(command)
+            elif re.match("v\s+(\d,|\d)+\s*(=|\+=|-=|\*=|/=)\s*[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?\s*$", command):
+                self.variable_assign(command)
+            elif re.match("v\s+select\s+\d+\s*$", command):
+                self.variable_select(command)
+            elif re.match("v\s+undo\s*$", command):
+                self.variable_undo()
+            elif re.match("v\s+restore\s*$", command):
+                self.variable_undo()
+            else:
+                print "Could not recognize command"
         elif re.match("weight\s[\w]+$|weight\s[\w]+\s[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$", command):
             self.weight([x for x in command.split(" ")[1:] if x])
-        elif re.match("variables\s*$", command):
-            self.variables()
         elif re.match("test\s*$", command):
             self.test()
-        elif re.match("save\s*$|save\s[^\s]+$", command):
-            self.save([x for x in command.split(" ")[1:] if x])
-        elif re.match("load\s*$|load\s[^\s]+$", command):
-            self.load([x for x in command.split(" ")[1:] if x])
+        elif re.match("save\s+\S+\s+(\d,|\d)+$", command):
+            self.save_config(command)
+        elif re.match("save\s*$", command):
+            self.save()
         elif re.match("exit\s*$", command):
             return
         else:
             print "Could not recognize command"
         self.command_line()
         
-#python-neat
