@@ -1,27 +1,27 @@
 [NEAT]
 fitness_criterion     = max
-fitness_threshold     = 49999.99
-pop_size              = 150
+fitness_threshold     = 49999.9999
+pop_size              = 300
 reset_on_extinction   = False
 
 [DefaultGenome]
 # node activation options
 activation_default      = identity
-activation_mutate_rate  = 0.2
-activation_options      = relu identity sigmoid tanh
+activation_mutate_rate  = 0.3
+activation_options      = relu identity
 
 # node aggregation options
 aggregation_default     = sum
-aggregation_mutate_rate = 0.2
+aggregation_mutate_rate =0.3
 aggregation_options     = sum product
 
 # node bias options
 bias_init_mean          = 0.0
 bias_init_stdev         = 1.0
-bias_max_value          = 5.0
-bias_min_value          = -5.0
+bias_max_value          = 3.0
+bias_min_value          = -3.0
 bias_mutate_power       = 0.5
-bias_mutate_rate        = 0.7
+bias_mutate_rate        =0.3
 bias_replace_rate       = 0.1
 
 # genome compatibility options
@@ -34,7 +34,7 @@ conn_delete_prob        = 0.3
 
 # connection enable options
 enabled_default         = True
-enabled_mutate_rate     = 0.01
+enabled_mutate_rate     =0.3
 
 feed_forward            = True
 initial_connection      = full_nodirect
@@ -50,20 +50,20 @@ num_outputs             = 2
 
 # node response options
 response_init_mean      = 0.0
-response_init_stdev     = 7.0
-response_max_value      = 7.0
-response_min_value      = -7.0
-response_mutate_power   = 0.0
-response_mutate_rate    = 0.2
-response_replace_rate   = 0.02
+response_init_stdev     = 1.0
+response_max_value      = 3.0
+response_min_value      = -3.0
+response_mutate_power   = 0.1
+response_mutate_rate    =0.3
+response_replace_rate   = 0.2
 
 # connection weight options
 weight_init_mean        = 0.0
-weight_init_stdev       = 2.0
-weight_max_value        = 7
-weight_min_value        = -7
-weight_mutate_power     = 0.5
-weight_mutate_rate      = 0.8
+weight_init_stdev       = 1.0
+weight_max_value        = 3.0
+weight_min_value        = -3.0
+weight_mutate_power     = 0.1
+weight_mutate_rate      = 0.3
 weight_replace_rate     = 0.1
 
 [DefaultSpeciesSet]
@@ -75,5 +75,5 @@ max_stagnation       = 20
 species_elitism      = 2
 
 [DefaultReproduction]
-elitism            = 2
+elitism            = 1
 survival_threshold = 0.2

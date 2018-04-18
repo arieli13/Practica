@@ -81,6 +81,7 @@ class LogClass:
         command = [x for x in command if x]
         return command
 
+    
     def variable_select(self, command):
         try:
             command = self.get_command(command)
@@ -191,6 +192,7 @@ class LogClass:
             except Exception as e:
                 print "Error: %s" % (e.message)
 
+    
     def variables(self):
         print "Avaliable variables:"
         number = 0
@@ -203,6 +205,7 @@ class LogClass:
         if self._test_function is not list:
             self._test_function()
 
+    
     def save(self):
         try:
             if self._save_dir is None:
@@ -221,6 +224,7 @@ class LogClass:
         except Exception as e:
             print "An error raised: %s"%(e.message)
 
+    
     def save_config(self, command):
         command = self.get_command(command)
         try:
@@ -229,6 +233,7 @@ class LogClass:
         except Exception as e:
             print "An error raised: %s"%(e.message) 
 
+    
     def load_aux(self, dir, sess):
         """try:
             global global_variables, load_dir
@@ -243,6 +248,7 @@ class LogClass:
         """
         pass
 
+    
     def load(self, command):
         """if len(command) == 1:
             global load_dir
@@ -256,6 +262,7 @@ class LogClass:
         for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
             print i   # i.name if you want just a name
 
+    
     def command_line(self):
         command = raw_input(self._cli_str)
 
@@ -270,7 +277,7 @@ class LogClass:
                 self.variable_view(command)
             elif re.match("v\s+(\d,|\d)+\s*$", command):
                 self.variable_view(command)
-            elif re.match("v\s+(\d,|\d)+\s*(=|\+=|-=|\*=|/=)\s*[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?\s*$", command):
+            elif re.match("v\s+(\d,|\d)+\s+(=|\+=|-=|\*=|/=)\s+[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?\s*$", command):
                 self.variable_assign(command)
             elif re.match("v\s+select\s+\d+\s*$", command):
                 self.variable_select(command)

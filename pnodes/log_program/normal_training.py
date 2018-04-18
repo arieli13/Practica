@@ -285,11 +285,10 @@ def test(sess):
         predic, cost_aux = sess.run([prediction, cost_rmse], feed_dict={
                                     X: [data[0]], Y: [data[1]]})
         predictions.write("%f;%f\n" % (predic[0][0], data[1][0]))
+        print "Expected: %f\tgot %f"%(data[1][0], predic[0][0])
         avg_cost += cost_aux
     print "Full dataset avg cost rmse: %f" % (math.sqrt(avg_cost/full_dataset_size))
 
-def func(function, function_args):
-    return function(*function_args)
 
 def main():
     """Execute program."""
