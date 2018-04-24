@@ -4,6 +4,7 @@
 import tensorflow as tf
 import math
 import random
+import numpy as np
 from LogClass import LogClass
 
 dataset_path = "../datasets/normalizado/pnode06_03000"
@@ -19,8 +20,8 @@ dropout_rate = [0.1, 0.1]
 
 learning_rate = 0.01
 
-batch_size = 10
-iterations = 200
+batch_size = 1
+iterations = 50
 ##################
 training = tf.Variable(True)
 mode = tf.placeholder(tf.bool)
@@ -29,8 +30,80 @@ training_mode_op = tf.assign(training, mode)
 X = tf.placeholder(tf.float32, [None, n_inputs])
 Y = tf.placeholder(tf.float32, [None, n_outputs])
 
-global sess
 
+sum_variables = [] # sum of all variables (each weight)
+cua_variables = [] # sum of all variables mutiplied by itself (cuadratic sum)
+p_variables = [] # % of variation of each variable 
+weight_cp = [] # copy of last weights to view the % of variation
+denominador = 1
+def save_stdv_variables(sess, variables):
+    global denominador, sum_variables, cua_variables, weight_cp
+    hl1 = variables["HL1/weight:0"]
+    hl2 = variables["HL2/weight:0"]
+    out = variables["output/weight:0"]
+    hl1, hl2, out = sess.run([hl1, hl2, out])
+    layers = [hl1, hl2, out]
+
+    for l in range(len(layers)):
+        for i in range(len(layers[l])):
+            for j in range( len(layers[l][i]) ):
+                sum_variables[l][i][j] += layers[l][i][j]
+                cua_variables[l][i][j] += (layers[l][i][j]*layers[l][i][j])
+
+                last_value = weight_cp[l][i][j]
+                new_value = layers[l][i][j]
+                diff = last_value - new_value
+                p_variables[l][i][j] += abs((diff*100.0)/last_value)
+    weight_cp[0] = np.copy(hl1)
+    weight_cp[1] = np.copy(hl2)
+    weight_cp[2] = np.copy(out)
+    denominador += 1
+
+
+
+def initialize_stdv(sess, variables):
+    global cua_variables, sum_variables
+    hl1 = variables["HL1/weight:0"]
+    hl2 = variables["HL2/weight:0"]
+    out = variables["output/weight:0"]
+    hl1, hl2, out = sess.run([hl1, hl2, out])
+    sum_variables.append(np.copy(hl1))
+    sum_variables.append(np.copy(hl2))
+    sum_variables.append(np.copy(out))
+    cua_variables.append(np.copy(hl1))
+    cua_variables.append(np.copy(hl2))
+    cua_variables.append(np.copy(out))
+    weight_cp.append(np.copy(hl1))
+    weight_cp.append(np.copy(hl2))
+    weight_cp.append(np.copy(out))
+    p_variables.append(np.copy(hl1))
+    p_variables.append(np.copy(hl2))
+    p_variables.append(np.copy(out))
+    for c in range(3):
+        for v in range(len(cua_variables[c])):
+            for w in range( len(cua_variables[c][v]) ) :
+                cua_variables[c][v][w] *= cua_variables[c][v][w]
+                p_variables[c][v][w] = 0.0
+
+
+def print_stdv():
+    global sum_variables, cua_variables, denominador
+    for l in range(len(sum_variables)):
+        string = "LAYER %d"%(l)
+        for i in range(len(sum_variables[l])):
+            for j in range( len(sum_variables[l][i]) ):
+                v = sum_variables[l][i][j]
+                sum_variables[l][i][j] /= denominador-1  # mean
+                cua_variables[l][i][j] -= 2*sum_variables[l][i][j]*v 
+                cua_variables[l][i][j] += denominador * sum_variables[l][i][j]*sum_variables[l][i][j]
+                cua_variables[l][i][j] /= (denominador-1)
+                cua_variables[l][i][j] = math.sqrt(abs(cua_variables[l][i][j]))
+                p_variables[l][i][j] /= denominador
+                if j%4 == 0:
+                    string += "\n"
+                string += "%f|%f\t"%(p_variables[l][i][j], cua_variables[l][i][j])
+            string += "\n\n"
+        print string
 
 def load_dataset(path):
     """
@@ -227,6 +300,10 @@ def train(sess, saver, ckpt):
     log = open("LOG.csv", "w+")
 
     global summary_variables
+    
+    variables_used = saved_variables
+    initialize_stdv(sess, variables_used)
+
     summary_variables = tf.summary.merge(summary_variables)
     file_writer = tf.summary.FileWriter(logs_dir, sess.graph)
     summary_number = 0
@@ -243,6 +320,9 @@ def train(sess, saver, ckpt):
             min_index += batch_size
             _, cost_aux, summaries = sess.run(
                 [optimizer, cost_mse, summary_variables], feed_dict={X: x, Y: y})
+            
+            save_stdv_variables(sess, variables_used)
+
             avg_cost_train += cost_aux
 
         # Begin testing
@@ -265,6 +345,7 @@ def train(sess, saver, ckpt):
                                   avg_cost_test/testing_dataset_size))
         file_writer.add_summary(summaries, summary_number)
         summary_number += 1
+    print_stdv()
 
 def test(sess):
     """
@@ -285,7 +366,7 @@ def test(sess):
         predic, cost_aux = sess.run([prediction, cost_rmse], feed_dict={
                                     X: [data[0]], Y: [data[1]]})
         predictions.write("%f;%f\n" % (predic[0][0], data[1][0]))
-        print "Expected: %f\tgot %f"%(data[1][0], predic[0][0])
+        #print "Expected: %f\tgot %f"%(data[1][0], predic[0][0])
         avg_cost += cost_aux
     print "Full dataset avg cost rmse: %f" % (math.sqrt(avg_cost/full_dataset_size))
 
@@ -302,7 +383,7 @@ def main():
         #test(sess)
         log_class = LogClass(sess, lambda: test(sess))
         log_class.command_line()
-        test(sess)
+        #test(sess)
 
 
 if __name__ == '__main__':
