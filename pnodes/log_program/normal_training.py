@@ -36,8 +36,9 @@ cua_variables = [] # sum of all variables mutiplied by itself (cuadratic sum)
 p_variables = [] # % of variation of each variable 
 weight_cp = [] # copy of last weights to view the % of variation
 denominador = 1
+
 def save_stdv_variables(sess, variables):
-    global denominador, sum_variables, cua_variables, weight_cp
+    global denominador, sum_variables, cua_variables, weight_cp, p_variables
     hl1 = variables["HL1/weight:0"]
     hl2 = variables["HL2/weight:0"]
     out = variables["output/weight:0"]
@@ -47,22 +48,15 @@ def save_stdv_variables(sess, variables):
     for l in range(len(layers)):
         for i in range(len(layers[l])):
             for j in range( len(layers[l][i]) ):
-                sum_variables[l][i][j] += layers[l][i][j]
-                cua_variables[l][i][j] += (layers[l][i][j]*layers[l][i][j])
-
-                last_value = weight_cp[l][i][j]
-                new_value = layers[l][i][j]
-                diff = last_value - new_value
-                p_variables[l][i][j] += abs((diff*100.0)/last_value)
-    weight_cp[0] = np.copy(hl1)
-    weight_cp[1] = np.copy(hl2)
-    weight_cp[2] = np.copy(out)
+                current_number = layers[l][i][j]
+                sum_variables[l][i][j].append(current_number)
+                cua_variables[l][i][j].append(current_number ** 2)
     denominador += 1
 
 
 
 def initialize_stdv(sess, variables):
-    global cua_variables, sum_variables
+    global cua_variables, sum_variables, weight_cp, p_variables
     hl1 = variables["HL1/weight:0"]
     hl2 = variables["HL2/weight:0"]
     out = variables["output/weight:0"]
@@ -79,29 +73,51 @@ def initialize_stdv(sess, variables):
     p_variables.append(np.copy(hl1))
     p_variables.append(np.copy(hl2))
     p_variables.append(np.copy(out))
+
+    cua_variables = list(cua_variables)
+    sum_variables = list(sum_variables)
+    for i in range(len(sum_variables)):
+        sum_variables[i] = list(sum_variables[i])
+        cua_variables[i] = list(cua_variables[i])
+        for j in range(len(sum_variables[i])):
+            sum_variables[i][j] = list(sum_variables[i][j])
+            cua_variables[i][j] = list(cua_variables[i][j])
+    
     for c in range(3):
         for v in range(len(cua_variables[c])):
             for w in range( len(cua_variables[c][v]) ) :
-                cua_variables[c][v][w] *= cua_variables[c][v][w]
+                cua_variables[c][v][w] = [cua_variables[c][v][w] ** 2]
+                sum_variables[c][v][w] = [sum_variables[c][v][w]]
                 p_variables[c][v][w] = 0.0
 
+def never_changed(l):
+    x = l.pop()
+    for i in l:
+        if x != i:
+            return False
+    return True
 
 def print_stdv():
-    global sum_variables, cua_variables, denominador
+    global sum_variables, cua_variables, denominador, p_variables
     for l in range(len(sum_variables)):
         string = "LAYER %d"%(l)
         for i in range(len(sum_variables[l])):
             for j in range( len(sum_variables[l][i]) ):
-                v = sum_variables[l][i][j]
-                sum_variables[l][i][j] /= denominador-1  # mean
-                cua_variables[l][i][j] -= 2*sum_variables[l][i][j]*v 
-                cua_variables[l][i][j] += denominador * sum_variables[l][i][j]*sum_variables[l][i][j]
-                cua_variables[l][i][j] /= (denominador-1)
-                cua_variables[l][i][j] = math.sqrt(abs(cua_variables[l][i][j]))
-                p_variables[l][i][j] /= denominador
+                
+                total_sum = sum(sum_variables[l][i][j])
+                mean = total_sum / len(sum_variables[l][i][j])
+                
+                total_sc_sum = sum(cua_variables[l][i][j])
+                total_sc_sum /= len(cua_variables[l][i][j])
+                
+                stdv = total_sc_sum - mean ** 2
+                stdv = math.sqrt(abs(stdv))
+                if never_changed(sum_variables[l][i][j]):
+                    stdv = 0.0
+
                 if j%4 == 0:
                     string += "\n"
-                string += "%f|%f\t"%(p_variables[l][i][j], cua_variables[l][i][j])
+                string += "%.17f\t"%(stdv)
             string += "\n\n"
         print string
 
@@ -271,7 +287,6 @@ optimizer = tf.train.AdamOptimizer(
 #_, cost_rmse = tf.metrics.root_mean_squared_error(Y, prediction)
 cost_rmse = tf.losses.mean_squared_error(labels=Y, predictions=prediction)
 
-
 def train(sess, saver, ckpt):
     """
     Execute an typical training.
@@ -300,9 +315,8 @@ def train(sess, saver, ckpt):
     log = open("LOG.csv", "w+")
 
     global summary_variables
-    
-    variables_used = saved_variables
-    initialize_stdv(sess, variables_used)
+
+    initialize_stdv(sess, saved_variables)
 
     summary_variables = tf.summary.merge(summary_variables)
     file_writer = tf.summary.FileWriter(logs_dir, sess.graph)
@@ -320,10 +334,10 @@ def train(sess, saver, ckpt):
             min_index += batch_size
             _, cost_aux, summaries = sess.run(
                 [optimizer, cost_mse, summary_variables], feed_dict={X: x, Y: y})
-            
-            save_stdv_variables(sess, variables_used)
 
             avg_cost_train += cost_aux
+        
+        save_stdv_variables(sess, saved_variables)
 
         # Begin testing
         avg_cost_test = 0
