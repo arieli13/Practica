@@ -277,7 +277,7 @@ class LogClass:
                 self.variable_view(command)
             elif re.match("v\s+(\d,|\d)+\s*$", command):
                 self.variable_view(command)
-            elif re.match("v\s+(\d,|\d)+\s+(=|\+=|-=|\*=|/=)\s+[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?\s*$", command):
+            elif re.match("v\s+(\d,|\d)+\s+(=|\+=|-=|\*=|/=)\s+[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?(%)?\s*$", command):
                 self.variable_assign(command)
             elif re.match("v\s+select\s+\d+\s*$", command):
                 self.variable_select(command)

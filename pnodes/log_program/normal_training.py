@@ -5,6 +5,7 @@ import tensorflow as tf
 import math
 import random
 import numpy as np
+import time
 from LogClass import LogClass
 
 dataset_path = "../datasets/normalizado/pnode06_03000"
@@ -21,7 +22,7 @@ dropout_rate = [0.1, 0.1]
 learning_rate = 0.01
 
 batch_size = 1
-iterations = 50
+iterations = 200
 ##################
 training = tf.Variable(True)
 mode = tf.placeholder(tf.bool)
@@ -36,6 +37,46 @@ cua_variables = [] # sum of all variables mutiplied by itself (cuadratic sum)
 p_variables = [] # % of variation of each variable 
 weight_cp = [] # copy of last weights to view the % of variation
 denominador = 1
+
+sum_var_str = [  {}, {}, {}  ]
+iteration_save = 0
+s = []
+def save_weights_summary(sess, variables):
+    global sum_var_str, s, iteration_save
+    hl1 = variables["HL1/weight:0"]
+    hl2 = variables["HL2/weight:0"]
+    out = variables["output/weight:0"]
+    hl1, hl2, out = sess.run([hl1, hl2, out])
+    layers = [hl1, hl2, out]
+    for l in range(len(layers)):
+        for r in range(len(layers[l])):
+            for c in range(len(layers[l][r])):
+                s.append( str(iteration_save)+","+str(l)+","+str(r)+"_"+str(c)+","+str(layers[l][r][c])+"\n" )
+                #if "%d_%d"%(r,c) in sum_var_str[l]:
+                    #sum_var_str[l]["%d_%d"%(r,c)].append(layers[l][r][c])
+                #else:
+                    #sum_var_str[l]["%d_%d"%(r,c)] = [layers[l][r][c]]
+    iteration_save+=1
+
+file = open("./log.txt", "w+")
+def write_weights():
+    """final_writable_data = []
+    for l in range(len(sum_var_str)):
+        for key in sum_var_str[l]:
+
+            weights = sum_var_str[l][key]
+            data = []
+            for w in range(len(weights)):
+                data.append("%d,%.17f\n"%(w, weights[w]))
+            file = open("./%d/%s"%(l, key), "w+")
+            file.write("".join(data))
+        final_writable_data.append(data)"""
+    global s
+    file.write("".join(s))
+    s = []
+
+
+
 
 def save_stdv_variables(sess, variables):
     global denominador, sum_variables, cua_variables, weight_cp, p_variables
@@ -319,8 +360,8 @@ def train(sess, saver, ckpt):
     initialize_stdv(sess, saved_variables)
 
     summary_variables = tf.summary.merge(summary_variables)
-    file_writer = tf.summary.FileWriter(logs_dir, sess.graph)
-    summary_number = 0
+    #file_writer = tf.summary.FileWriter(logs_dir, sess.graph)
+    #summary_number = 0
     for iteration in range(iterations):
         min_index = 0
         avg_cost_train = 0
@@ -332,13 +373,16 @@ def train(sess, saver, ckpt):
             x = [i[0] for i in data]
             y = [i[1] for i in data]
             min_index += batch_size
-            _, cost_aux, summaries = sess.run(
-                [optimizer, cost_mse, summary_variables], feed_dict={X: x, Y: y})
+            #_, cost_aux, summaries = sess.run(
+            #    [optimizer, cost_mse, summary_variables], feed_dict={X: x, Y: y})
+            _, cost_aux = sess.run(
+                [optimizer, cost_mse], feed_dict={X: x, Y: y})
 
             avg_cost_train += cost_aux
+            save_weights_summary(sess, saved_variables)
         
-        save_stdv_variables(sess, saved_variables)
-
+        #save_stdv_variables(sess, saved_variables)
+        write_weights()
         # Begin testing
         avg_cost_test = 0
         sess.run(training_mode_op, feed_dict={mode: False})
@@ -357,9 +401,9 @@ def train(sess, saver, ckpt):
         log.write("%d;%f;%f\n" % (iteration+1, avg_cost_train /
                                   training_dataset_size,
                                   avg_cost_test/testing_dataset_size))
-        file_writer.add_summary(summaries, summary_number)
-        summary_number += 1
-    print_stdv()
+        #file_writer.add_summary(summaries, summary_number)
+        #summary_number += 1
+    #print_stdv()
 
 def test(sess):
     """
@@ -393,11 +437,19 @@ def main():
 
         saver = tf.train.Saver(saved_variables)
         ckpt = load_model(sess, saver, "./checkpoints/")
-        #train(sess, saver, ckpt)
+
+        start = time.time()
+        train(sess, saver, ckpt)
+        finish = time.time()
+        print "Time: %f"%(finish-start)
+        global s
+        if len(s) != 0:
+            write_weights()
         #test(sess)
-        log_class = LogClass(sess, lambda: test(sess))
-        log_class.command_line()
+        #log_class = LogClass(sess, lambda: test(sess))
+        #log_class.command_line()
         #test(sess)
+        #write_weights()
 
 
 if __name__ == '__main__':
