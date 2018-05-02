@@ -4,18 +4,20 @@
 import tensorflow as tf
 import math
 import random
+from ListDataset import ListDataset
+from NumpyDataset import NumpyDataset
 
-dataset_path = "../dataset/x.txt"
+dataset_path = "../dataset/cart_coords.txt"
 training_registers = 500
 logs_dir = "./logs/"
 ##################
-n_inputs = 4
+n_inputs = 3
 n_outputs = 2
-hidden_layers_nodes = [20, 20]
-hidden_layers_ac_fun = [None, tf.nn.relu]
+hidden_layers_nodes = [20, 10]
+hidden_layers_ac_fun = [tf.nn.relu, None]
 dropout_rate = [0.1, 0.1]
 
-learning_rate = 0.001
+learning_rate = 0.0001
 
 batch_size = 1
 iterations = 200
@@ -26,53 +28,6 @@ training_mode_op = tf.assign(training, mode)
 
 X = tf.placeholder(tf.float32, [None, n_inputs])
 Y = tf.placeholder(tf.float32, [None, n_outputs])
-
-
-def load_dataset(path):
-    """
-    Create a dataset from a csv.
-
-    The path is of an existing csv, each line separated by carriage return and each column separeted by blank space. Nine cols.
-
-    Args:
-        path: the path of the csv.
-
-    Return:
-        dataset: A list. Structure: [ [ [input], [label] ], [[input], [label]] ]
-    """
-    dataset = []
-    with open(path) as f:
-        lines = f.readlines()
-        for line in lines:
-            line = line.split(" ")
-            feature = line[:n_inputs]
-            label = line[n_inputs:]
-            feature = [float(i) for i in feature]
-            label = [float(i) for i in label]
-            dataset.append([feature, label])
-    return dataset
-
-
-def create_matrix_summary(matrix, n_inputs, n_nodes, max_summaries=1):
-    """Create a tf.summary.scalar of each weight in the matrix(layer)...
-
-    Args:
-        matrix: The weights tensor object.
-        n_nodes: Number of weights that the matrix has.
-        n_inputs: Number of input neurones that the matrix has.
-        max_summaries: The number of nodes to save summaries.
-
-    Returns:
-        A list of all the tf.summary.scalar of each weight in the layer.
-
-    """
-    summary = []
-    for i in range(n_inputs):
-        for j in range(n_nodes):
-            summary.append(tf.summary.scalar("%d,%d" % (i, j), matrix[i][j]))
-    if max_summaries < len(summary):
-        summary = random.sample(summary, max_summaries)
-    return summary
 
 
 def create_layer(inputs, n_inputs_nodes, n_nodes, name, activation_function=None,
@@ -92,12 +47,10 @@ def create_layer(inputs, n_inputs_nodes, n_nodes, name, activation_function=None
         w: Weight variable.
         b: Biases variable.
         o: New layer.
-        summary: The summary of the weights
     """
     with tf.name_scope(name):
         w = tf.Variable(tf.random_normal(
             [n_inputs_nodes, n_nodes], 0.0, 0.1, tf.float32), name="weight")
-        summary = create_matrix_summary(w, n_inputs_nodes, n_nodes)
         b = tf.Variable(tf.random_normal([n_nodes], 0.0, 0.1, tf.float32), name="biases")
         o = tf.add(tf.matmul(inputs, w), b)
         if activation_function is not None:
@@ -105,7 +58,7 @@ def create_layer(inputs, n_inputs_nodes, n_nodes, name, activation_function=None
         if rate_prob is not None:
             o = tf.layers.dropout(o, rate_prob,
                                 training=training)
-        return w, b, o, summary
+        return w, b, o
 
 
 def create_model():
@@ -122,31 +75,26 @@ def create_model():
     Return:
         layer: The output layer of the neuronal net.
         saved_variables: The variables to be saved.
-        summary_variables: Variables to save the summary of them.
     """
     saved_variables = {}
-    summary_variables = []
 
-    w, b, layer, summary = create_layer(X, n_inputs, hidden_layers_nodes[0], 
+    w, b, layer = create_layer(X, n_inputs, hidden_layers_nodes[0], 
                                         "HL1", hidden_layers_ac_fun[0], dropout_rate[0])
-    summary_variables += summary
     saved_variables[w.name] = w
     saved_variables[b.name] = b
 
     for i in range(1, len(hidden_layers_nodes)):
-        w, b, layer, summary = create_layer(
+        w, b, layer = create_layer(
             layer, hidden_layers_nodes[i-1], hidden_layers_nodes[i],
             "HL"+str(i+1), hidden_layers_ac_fun[i], dropout_rate[i])
-        summary_variables += summary
         saved_variables[w.name] = w
         saved_variables[b.name] = b
 
-    w, b, layer, summary = create_layer(
+    w, b, layer = create_layer(
         layer, hidden_layers_nodes[-1], n_outputs, "output", None, None)
-    summary_variables += summary
     saved_variables[w.name] = w
     saved_variables[b.name] = b
-    return layer, saved_variables, summary_variables
+    return layer, saved_variables
 
 
 def save_model(sess, saver, path, ckpt):
@@ -179,14 +127,14 @@ def load_model(sess, saver, path):
         lastCheckpoint = tf.train.latest_checkpoint(path)
         saver.restore(sess, lastCheckpoint)
         ckpt = int(lastCheckpoint.split("-")[-1])+1
-        print "Model successfully loaded"
+        print("Model successfully loaded")
     except:
-        print "Could not load the model"
+        print("Could not load the model")
     finally:
         return ckpt
 
 
-prediction, saved_variables, summary_variables = create_model()
+prediction, saved_variables = create_model()
 cost_mse = tf.losses.mean_squared_error(labels=Y, predictions=prediction)
 optimizer = tf.train.AdamOptimizer(
     learning_rate=learning_rate).minimize(cost_mse)
@@ -209,61 +157,42 @@ def train(sess, saver, ckpt):
         saver: The one who saves the variables.
         ckpt: The next checkpoint of the saved variables.
     """
-    training_dataset = load_dataset(dataset_path)
-    testing_dataset = training_dataset[training_registers:training_registers+500]#load_dataset(dataset_test_path)
-    training_dataset = training_dataset[:training_registers]
-
-    training_dataset_size = len(training_dataset)
-    testing_dataset_size = len(testing_dataset)
-
-    assert training_dataset_size >= batch_size
-
-    total_epochs = int(
-        math.ceil(float(training_dataset_size)/float(batch_size)))
+    training_dataset = NumpyDataset("../dataset/leftArmMovement_train.csv", batch_size, n_inputs, n_outputs, ",", 1)
+    testing_dataset = NumpyDataset("../dataset/leftArmMovement_test.csv", batch_size, n_inputs, n_outputs, ",", 1)
 
     log = open("LOG.csv", "w+")
     log_list = []
 
-    global summary_variables
-    summary_variables = tf.summary.merge(summary_variables)
-    file_writer = tf.summary.FileWriter(logs_dir, sess.graph)
-    summary_number = 0
     for iteration in range(iterations):
-        min_index = 0
         avg_cost_train = 0
-        random.shuffle(training_dataset)
+        
+        training_dataset.restore_index()
+        training_dataset.shuffle()
         # Begin training
-        sess.run(training_mode_op, feed_dict={mode: True})
-        for epoch in range(total_epochs):
-            data = training_dataset[min_index:(min_index+batch_size)]
-            x = [i[0] for i in data]
-            y = [i[1] for i in data]
-            min_index += batch_size
-            _, cost_aux, summaries = sess.run(
-                [optimizer, cost_mse, summary_variables], feed_dict={X: x, Y: y})
+        sess.run(training_mode_op, feed_dict={mode: False})
+        while(not training_dataset.out_of_range()):
+            inputs, labels = training_dataset.get_next()
+            _, cost_aux = sess.run(
+                [optimizer, cost_mse], feed_dict={X: inputs, Y: labels})
             avg_cost_train += cost_aux
-            #print "Epoch: %d\tError: %f"%(epoch, cost_aux)
+            #print("Epoch: %d\tError: %f"%(epoch, cost_aux))
 
+        testing_dataset.restore_index()
         # Begin testing
         avg_cost_test = 0
         sess.run(training_mode_op, feed_dict={mode: False})
-        for i in range(testing_dataset_size):
-            data = testing_dataset[i:i+1]
-            x = [i[0] for i in data]
-            y = [i[1] for i in data]
-            min_index += batch_size
-            cost_aux = sess.run(cost_rmse, feed_dict={X: x, Y: y})
+        while(not testing_dataset.out_of_range()):
+            inputs, labels = testing_dataset.get_next()
+            cost_aux = sess.run(cost_rmse, feed_dict={X: inputs, Y: labels})
             avg_cost_test += cost_aux
-        print "Iteration: %d\ttrain cost: %f\ttest cost: %f" % (
-            iteration, avg_cost_train/training_dataset_size,
-            avg_cost_test/testing_dataset_size)
+        print("Iteration: %d\ttrain cost: %f\ttest cost: %f" % (
+            iteration, avg_cost_train/training_dataset.get_size(),
+            avg_cost_test/testing_dataset.get_size()))
         ckpt += 1
         #save_model(sess, saver, "./checkpoints/", ckpt)
         log_list.append("%d;%f;%f\n" % (iteration+1, avg_cost_train /
-                                  training_dataset_size,
-                                  avg_cost_test/testing_dataset_size))
-        #file_writer.add_summary(summaries, summary_number)
-        #summary_number += 1
+                                        training_dataset.get_size(),
+                                        avg_cost_test/testing_dataset.get_size()))
     log.write("".join(log_list))
     save_model(sess, saver, "./checkpoints/", ckpt)
 
@@ -277,20 +206,21 @@ def test(sess):
     Args:
         sess: The tf.Session() where the testing will be executed.
     """
-    full_dataset = load_dataset(dataset_path)
-    full_dataset_size = len(full_dataset)
+    full_dataset = NumpyDataset("../dataset/cart_leftArmMovement.csv", 1, n_inputs, n_outputs, ",", 1)
     avg_cost = 0
 
     predictions = open("predictions.csv", "w+")
     sess.run(training_mode_op, feed_dict={mode: False})
-    predictions_list = []
-    for data in full_dataset:
+    predictions_list = ["predict_x,predict_y,label_x,label_y\n"]
+    while not full_dataset.out_of_range():
+        inputs, labels = full_dataset.get_next()
         predic, cost_aux = sess.run([prediction, cost_rmse], feed_dict={
-                                    X: [data[0]], Y: [data[1]]})
-        predictions_list.append("%f;%f;%f;%f\n" % (predic[0][0], predic[0][1], data[1][0], data[1][1]))
+                                    X: inputs, Y: labels})
+        predictions_list.append("%f,%f,%f,%f\n" % (predic[0][0], predic[0][1], labels[0][0], labels[0][1]))
         avg_cost += cost_aux
     predictions.write("".join(predictions_list))
-    print "Full dataset avg cost rmse: %f" % (avg_cost/full_dataset_size)
+    predictions.close()
+    print("Full dataset avg cost rmse: %f" % (avg_cost/full_dataset.get_size()))
 
 
 def main():
@@ -304,6 +234,7 @@ def main():
         train(sess, saver, ckpt)
         test(sess)
         #print sess.run(prediction, feed_dict={X:})
+        
 
 
 if __name__ == '__main__':

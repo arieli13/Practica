@@ -5,7 +5,7 @@ import math
 #import visualize
 os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin'
 
-dataset_path = "./datasets/leftArmMovement_new"
+dataset_path = "./datasets/cart_coords"
 dataset_train_path = dataset_path+"_train.txt"
 dataset_test_path = dataset_path+"_test.txt"
 dataset_full_path = dataset_path+".txt"
@@ -35,8 +35,8 @@ def load_dataset(path):
         lines = f.readlines()
         for line in lines:
             line = line.split(" ")
-            feature = line[:3]
-            label = line[3:]
+            feature = line[:4]
+            label = line[4:]
             feature = [float(i) for i in feature]
             label = [float(i) for i in label]
             dataset.append([feature, label])
@@ -48,16 +48,21 @@ def test(winner_net):
     distance_difference = 0.0
     angle_difference = 0.0
     global dataset_test
+    log_predictions = []
     #dataset_test = dataset_test[:200]
     for xi, xo in dataset_test:
         output = winner_net.activate(xi)
         distance_difference += (output[0]-xo[0])**2
         angle_difference += (output[1]-xo[1])**2
-        #print("expected output ({!r}, {!r}), got ({!r}, {!r})".format(xo[0],xo[1], output[0], output[1]))
+        log_predictions.append( "{!r};{!r};{!r};{!r}\n".format(xo[0],xo[1], output[0], output[1]) )
+        #print()
     error = distance_difference + angle_difference
     error = error/(2*len(dataset_test))
     error = math.sqrt(error)
     print("RMSE: %f"%(error))
+    with open("./predictions_log.csv", "w+") as f:
+        f.write("".join(log_predictions))
+
 
 def test_normalized(winner_net):
     error = 0.0
@@ -159,7 +164,7 @@ def main():
     config_path = os.path.join(local_dir, "config.txt")
     dataset_train = load_dataset(dataset_full_path)
     #dataset_test = load_dataset("./datasets/dataset.txt")
-    dataset_test = dataset_train[train_registers:]
+    dataset_test = dataset_train[:]
     dataset_train = dataset_train[:train_registers]
     run(config_path)
     save_logs()
