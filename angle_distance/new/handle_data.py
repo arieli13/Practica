@@ -41,4 +41,87 @@ def polar_2_cart(path_file, new_path):
     f = f.map(polar_2_cart_aux)
     f.repartition(1).saveAsTextFile(new_path)
 
-create_training_testing_files("../dataset/cart_leftArmMovement.csv", "./cart_leftArmMovement", 0.001)
+def add_radio_aux(line):
+    line = line.split(",")
+    line.insert(2, "0.05")
+    line = ",".join(line)
+    return line
+
+def add_radio(path_file, new_path):
+    f = sc.textFile(path_file)
+    header = f.first()
+    f = f.filter(lambda line: line!=header)
+    f = f.map(add_radio_aux)
+    f.repartition(1).saveAsTextFile(new_path)
+
+normalize_distance = lambda d: d/2.69 
+normalize_angle = lambda a: (a+math.pi)/(2*math.pi)
+
+def normalize_0_1_aux(line):
+    line = [float(i) for i in line.split(",")]
+    line = [ normalize_distance( line[0] ), normalize_angle( line[1] ), 
+             normalize_distance( line[2] ), normalize_angle( line[3] ), 
+             normalize_distance( line[4] ), normalize_angle( line[5] )   ]
+    line = ",".join( [ str(i) for i in line ] )
+    return line
+
+def normalize_0_1(path_file, new_path):
+    f = sc.textFile(path_file)
+    header = f.first()
+    f = f.filter(lambda line: line!=header)
+    f = f.map(normalize_0_1_aux)
+    f.repartition(1).saveAsTextFile(new_path)
+
+def positive_angles_aux(line):
+    line = [float(i) for i in line.split(",")]
+    if line[1]<0:
+        line[1] = line[1] + 2*math.pi
+    if line[3]<0:
+        line[3] = line[3] + 2*math.pi
+    if line[5]<0:
+        line[5] = line[5] + 2*math.pi
+    line = ",".join( [ str(i) for i in line ] )
+    return line
+
+def positive_angles(path_file, new_path):
+    f = sc.textFile(path_file)
+    header = f.first()
+    f = f.filter(lambda line: line!=header)
+    f = f.map(positive_angles_aux)
+    f.repartition(1).saveAsTextFile(new_path)
+
+def add_direction_aux(line):
+    line = [float(i) for i in line.split(",")]
+    dir = 0
+    if line[1] < 0:
+        if line[5] < 0:
+            if line[1] < line[5]:
+                dir = -1
+            else:
+                dir = 1
+        else:
+            dir = dir = 1
+    else:
+        if line[5] > 0:
+            if line[1] < line[5]:
+                dir = 1
+            else:
+                dir = -1
+        else:
+            dir = dir = -1
+    line[1] = abs(line[1])
+    line.insert(4, dir)
+    line = ",".join( [ str(i) for i in line ] )
+    return line
+
+
+def add_direction(path_file, new_path):
+    f = sc.textFile(path_file)
+    header = f.first()
+    f = f.filter(lambda line: line!=header)
+    f = f.map(add_direction_aux)
+    f.repartition(1).saveAsTextFile(new_path)
+
+def 
+    
+create_training_testing_files("../dataset/360_leftArmMovement.csv", "./x", 0.001)

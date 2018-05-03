@@ -6,21 +6,21 @@ import math
 import random
 from ListDataset import ListDataset
 from NumpyDataset import NumpyDataset
+from WeightLog import WeightLog
+import re
 
-dataset_path = "../dataset/cart_coords.txt"
-training_registers = 500
 logs_dir = "./logs/"
 ##################
-n_inputs = 3
+n_inputs = 4
 n_outputs = 2
 hidden_layers_nodes = [20, 10]
-hidden_layers_ac_fun = [tf.nn.relu, None]
+hidden_layers_ac_fun = [tf.nn.relu, tf.nn.relu]
 dropout_rate = [0.1, 0.1]
 
-learning_rate = 0.0001
+learning_rate = 0.001
 
 batch_size = 1
-iterations = 200
+iterations = 2
 ##################
 training = tf.Variable(True)
 mode = tf.placeholder(tf.bool)
@@ -157,11 +157,19 @@ def train(sess, saver, ckpt):
         saver: The one who saves the variables.
         ckpt: The next checkpoint of the saved variables.
     """
-    training_dataset = NumpyDataset("../dataset/leftArmMovement_train.csv", batch_size, n_inputs, n_outputs, ",", 1)
-    testing_dataset = NumpyDataset("../dataset/leftArmMovement_test.csv", batch_size, n_inputs, n_outputs, ",", 1)
+    training_dataset = NumpyDataset("../dataset/360_leftArmMovement_train.csv", batch_size, n_inputs, n_outputs, ",", 1)
+    testing_dataset = NumpyDataset("../dataset/360_leftArmMovement_test.csv", batch_size, n_inputs, n_outputs, ",", 1)
 
     log = open("LOG.csv", "w+")
     log_list = []
+    
+    #######
+    log_weights_variables = []
+    for i in saved_variables:
+        if( re.match( ".*weight.*" , i) ):
+            log_weights_variables.append(saved_variables[i])
+    weight_log = WeightLog(variables=log_weights_variables, sess=sess, log_path="./weights_logs.csv", separator=",")
+    #######
 
     for iteration in range(iterations):
         avg_cost_train = 0
@@ -175,8 +183,9 @@ def train(sess, saver, ckpt):
             _, cost_aux = sess.run(
                 [optimizer, cost_mse], feed_dict={X: inputs, Y: labels})
             avg_cost_train += cost_aux
+            weight_log.log()
             #print("Epoch: %d\tError: %f"%(epoch, cost_aux))
-
+        weight_log.save_log()
         testing_dataset.restore_index()
         # Begin testing
         avg_cost_test = 0
@@ -195,6 +204,7 @@ def train(sess, saver, ckpt):
                                         avg_cost_test/testing_dataset.get_size()))
     log.write("".join(log_list))
     save_model(sess, saver, "./checkpoints/", ckpt)
+    weight_log.end_log()
 
 
 def test(sess):
@@ -206,7 +216,7 @@ def test(sess):
     Args:
         sess: The tf.Session() where the testing will be executed.
     """
-    full_dataset = NumpyDataset("../dataset/cart_leftArmMovement.csv", 1, n_inputs, n_outputs, ",", 1)
+    full_dataset = NumpyDataset("../dataset/360_leftArmMovement.csv", 1, n_inputs, n_outputs, ",", 1)
     avg_cost = 0
 
     predictions = open("predictions.csv", "w+")
@@ -232,8 +242,7 @@ def main():
         saver = tf.train.Saver(saved_variables)
         ckpt = load_model(sess, saver, "./checkpoints/")
         train(sess, saver, ckpt)
-        test(sess)
-        #print sess.run(prediction, feed_dict={X:})
+        #test(sess)
         
 
 
