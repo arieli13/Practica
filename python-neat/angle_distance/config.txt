@@ -9,7 +9,7 @@ no_fitness_termination= True
 # node activation options
 activation_default      = identity
 activation_mutate_rate  = 0.3
-activation_options      = relu identity
+activation_options      = identity
 
 # node aggregation options
 aggregation_default     = sum
