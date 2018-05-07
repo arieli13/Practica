@@ -1,13 +1,12 @@
 import tensorflow as tf
 
 
-class ErrorLog:
-
-    def __init__(self, path, file_mode, iteration=0, separator=","):
+class Log:
+    #"iteration%strain_error%stest_error\n"
+    def __init__(self, path, file_mode, iteration=0, header, separator=","):
         self.__file = open(path, file_mode)
         self.__iteration = iteration
-        self.__errors = ["iteration%strain_error%stest_error\n"
-                         % (separator, separator)]
+        self.__errors = [header]
         self.__separator = separator
 
     def log_error(self, training_error, testing_error):

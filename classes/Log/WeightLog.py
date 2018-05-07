@@ -1,12 +1,11 @@
 import tensorflow as tf
 
 class WeightLog:
-
-    def __init__(self, variables, sess, log_path, separator=","):
+    #"iteration%slayer%srow_col%svalue\n"
+    def __init__(self, variables, sess, log_path, header, separator=","):
         self.__variables = variables
         self.__num_variables = len(self.__variables)
-        self.__data_buffer = ["iteration%slayer%srow_col%svalue\n"
-                              % (separator, separator, separator)]
+        self.__data_buffer = [header]
         self.__sess = sess
         self.__file = open(log_path, "w+")
         self.__log_number = 0
