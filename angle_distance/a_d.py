@@ -1,12 +1,17 @@
 """Execute an typical training for a nn."""
 # !/usr/bin/env
+import sys
+
 import math
 import random
-from WeightLog import WeightLog
 import re
-from PersistanceManager import PersistanceManager
-from ErrorLog import ErrorLog
 from defined_variables import *
+sys.path.append("../classes/Log")
+sys.path.append("../classes")
+from LogWeight import LogWeight
+from PersistanceManager import PersistanceManager
+from LogString import LogString
+
 
 
 def create_layer(inputs, n_inputs_nodes, n_nodes, name, 
@@ -104,10 +109,9 @@ def train(sess, persistance_manager):
         if(re.match(".*weight.*", i)):  # Just weights, excludes biases
             log_weights_variables.append(saved_variables[i])
     #######
-
-    weight_log = WeightLog(variables=log_weights_variables, sess=sess, 
-                           log_path=weight_log_path, separator=",")
-    error_log = ErrorLog(error_log_path, "w+")
+    
+    weight_log = LogWeight(weight_log_path, "w+", log_weights_variables, sess, header="iteration,layer,row_col,value\n")
+    error_log = LogString(error_log_path, "w+", "iteration,train_error,test_error\n")
 
     for iteration in range(iterations):
         avg_cost_train = 0
@@ -115,21 +119,21 @@ def train(sess, persistance_manager):
         # Begin training
         training_dataset.restore_index()
         training_dataset.shuffle()
-        sess.run(training_mode_op, feed_dict={mode: True})
-        while(not training_dataset.out_of_range()):
+        sess.run(training_mode_op, feed_dict={mode: False})
+        while(not training_dataset.dataset_out_of_range()):
             inputs, labels = training_dataset.get_next()
             _, cost_aux = sess.run(
                 [optimizer, cost_mse], feed_dict={X: inputs, Y: labels})
             avg_cost_train += cost_aux
         
         weight_log.log_weights()
-        weight_log.save_log()
+        weight_log.save()
         
         # Begin testing
         testing_dataset.restore_index()
         avg_cost_test = 0
         sess.run(training_mode_op, feed_dict={mode: False})
-        while(not testing_dataset.out_of_range()):
+        while(not testing_dataset.dataset_out_of_range()):
             inputs, labels = testing_dataset.get_next()
             cost_aux = sess.run(cost_rmse, feed_dict={X: inputs, Y: labels})
             avg_cost_test += cost_aux
@@ -137,12 +141,11 @@ def train(sess, persistance_manager):
         test_error = avg_cost_test/testing_dataset.get_size()
         print("Iteration: %d\ttrain cost: %f\ttest cost: %f" % (
                iteration, train_error, test_error))
-        
-        error_log.log_error(train_error, test_error)
+        error_log.log_string([train_error, test_error])
     
     error_log.close_file()
     persistance_manager.save_variables()
-    #weight_log.close_file()
+    weight_log.close_file()
 
 
 def test(sess):
@@ -156,19 +159,19 @@ def test(sess):
     """
     
     avg_cost = 0
-
-    predictions = open(predictions_log_path, "w+")
+    predictions_log = LogString( predictions_log_path, "w+", "predict_x,predict_y,label_x,label_y\n")
     sess.run(training_mode_op, feed_dict={mode: False})
-    predictions_list = ["predict_x,predict_y,label_x,label_y\n"]
-    while not full_dataset.out_of_range():
+    cont = 0
+    while not full_dataset.dataset_out_of_range():
         inputs, labels = full_dataset.get_next()
         predic, cost_aux = sess.run([prediction, cost_rmse], feed_dict={
                                     X: inputs, Y: labels})
-        predictions_list.append("%f,%f,%f,%f\n" % (predic[0][0], predic[0][1], 
-                                labels[0][0], labels[0][1]))
+        predictions_log.log_string([predic[0][0], predic[0][1],labels[0][0], labels[0][1]])
+        if cont % 1000 == 0:
+            predictions_log.save()
         avg_cost += cost_aux
-    predictions.write("".join(predictions_list))
-    predictions.close()
+        cont += 1
+    predictions_log.close_file()
     print("Full dataset avg cost rmse: %f" % (avg_cost/full_dataset.get_size()))
 
 

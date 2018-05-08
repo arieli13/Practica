@@ -61,13 +61,13 @@ def test(winner_net):
 
 def fitness_function(genomes, config):
     
-    mean_error = 0 #mean error of generation
-    sum_sc_error = 0
-    sum_error = 0
-    gen_size = len(genomes)
+    #mean_error = 0 #mean error of generation
+    #sum_sc_error = 0
+    #sum_error = 0
+    #gen_size = len(genomes)
 
-    min_fitness = 10000
-    max_fitness = -10000
+    #min_fitness = 10000
+    #max_fitness = -10000
 
     for genome_id, genome in genomes:
         distance_difference = 0
@@ -81,17 +81,17 @@ def fitness_function(genomes, config):
         error /= (train_registers*2)
         error = math.sqrt(error)
 
-        if min_fitness > error:
-            min_fitness = error
-        elif max_fitness < error:
-            max_fitness = error
+        #if min_fitness > error:
+            #min_fitness = error
+        #elif max_fitness < error:
+            #max_fitness = error
         
-        mean_error += error
-        sum_sc_error += error*error
+        #mean_error += error
+        #sum_sc_error += error*error
 
         genome.fitness = error*-1 #max
 
-    sum_error = mean_error
+    """"sum_error = mean_error
     mean_error /= gen_size
     stdv_error = sum_sc_error + -2*mean_error*sum_error + gen_size*mean_error*mean_error
     stdv_error /= (gen_size-1)
@@ -103,7 +103,7 @@ def fitness_function(genomes, config):
     log_data["best"] = min_fitness
     log_data["worst"] = max_fitness
 
-    log.append(log_data)
+    log.append(log_data)"""
 
 
 def run(config_file):
@@ -113,7 +113,7 @@ def run(config_file):
     
     p = neat.Population(config)
 
-    winner = p.run(fitness_function, 100)
+    winner = p.run(fitness_function, 7000)
 
     print('\nBest genome:\n{!s}'.format(winner))
 
@@ -137,7 +137,7 @@ def main():
     dataset_test = dataset_train[:]
     dataset_train = dataset_train[:train_registers]
     run(config_path)
-    save_logs()
+    #save_logs()
     
 
 if __name__ == '__main__':
