@@ -31,6 +31,8 @@ def summary(line):
 
 
 file = sc.textFile("./weights_logs.csv")
+header = file.first()
+file = file.filter(lambda line: line!=header)
 file = file.map(lambda line: line.split(","))
 file = file.map(lambda line: ( line[1]+"_"+line[2], float(line[3] ) ) )
 file = file.reduceByKey( lambda x, y: str(x)+","+str(y) )

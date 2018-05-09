@@ -11,6 +11,7 @@ sys.path.append("../classes")
 from LogWeight import LogWeight
 from PersistanceManager import PersistanceManager
 from LogString import LogString
+from graphics import plot_csv
 
 
 
@@ -144,7 +145,7 @@ def train(sess, persistance_manager):
         error_log.log_string([train_error, test_error])
     
     error_log.close_file()
-    persistance_manager.save_variables()
+    #persistance_manager.save_variables()
     weight_log.close_file()
 
 
@@ -184,6 +185,7 @@ def main():
         persistance_manager.load_variables()
         train(sess, persistance_manager)
         test(sess)
+        plot_csv(error_log_path, ",", 0,[1, 2], "Iteration", "Value", "Error log", ["g+", "r-"])
 
 
 if __name__ == '__main__':

@@ -1,0 +1,18 @@
+digraph {
+	node [fontsize=9 height=0.2 shape=circle width=0.2]
+	x_t [fillcolor=lightgray shape=box style=filled]
+	y_t [fillcolor=lightgray shape=box style=filled]
+	x_act [fillcolor=lightgray shape=box style=filled]
+	y_act [fillcolor=lightgray shape=box style=filled]
+	"x_t+1" [fillcolor=lightblue style=filled]
+	"y_t+1" [fillcolor=lightblue style=filled]
+	1532 [fillcolor=white style=filled]
+	x_t -> "x_t+1" [color=green penwidth=0.2596792458191811 style=solid]
+	y_t -> "y_t+1" [color=green penwidth=0.2817489589051846 style=solid]
+	x_act -> "x_t+1" [color=green penwidth=0.18865222524887265 style=dotted]
+	x_act -> "y_t+1" [color=red penwidth=0.42133548639932583 style=dotted]
+	y_act -> "x_t+1" [color=green penwidth=0.5725000913562022 style=dotted]
+	y_act -> "y_t+1" [color=green penwidth=0.14073514043421786 style=solid]
+	x_act -> 1532 [color=green penwidth=0.30000000000000004 style=solid]
+	1532 -> "x_t+1" [color=red penwidth=0.13792436059277235 style=solid]
+}

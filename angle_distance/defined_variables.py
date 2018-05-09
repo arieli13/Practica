@@ -6,11 +6,11 @@ from ListClassicDataset import ListClassicDataset
 n_inputs = 4  # Inputs for the NN
 n_outputs = 2  # Outputs of the NN
 
-hidden_layers_nodes = [20, 10]  # Nodes in each hidden layer
+hidden_layers_nodes = [15]  # Nodes in each hidden layer
 hidden_layers_ac_fun = [None, None]  # Activation functions of each hidden layers
 dropout_rate = [0.1, 0.1]  # Dropout rate of te hidden layers
 
-learning_rate = 0.00001
+learning_rate = 0.001
 
 batch_size = 1  # Batch size of the TRAINING dataset
 iterations = 200  # Number of iterations of the training
@@ -23,7 +23,7 @@ X = tf.placeholder(tf.float32, [None, n_inputs])  # Inputs for the NN
 Y = tf.placeholder(tf.float32, [None, n_outputs])  # Labels for the NN
 
 training_dataset = ListClassicDataset("../datasets_angle_distance/cart_leftArmMovement_train.csv",
-                                batch_size, n_inputs, n_outputs, ",", 1)
+                                batch_size, n_inputs, n_outputs, ",", 1, 40)
 testing_dataset = ListClassicDataset("../datasets_angle_distance/cart_leftArmMovement_test.csv", 1,
                                n_inputs, n_outputs, ",", 1)
 full_dataset = ListClassicDataset("../datasets_angle_distance/cart_leftArmMovement.csv", 1,
@@ -31,4 +31,4 @@ full_dataset = ListClassicDataset("../datasets_angle_distance/cart_leftArmMoveme
 
 weight_log_path = "./weights_logs.csv"
 error_log_path = "./error_log.csv"
-predictions_log_path = "predictions_LOG.csv"
+predictions_log_path = "predictions_log.csv"
