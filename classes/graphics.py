@@ -1,6 +1,4 @@
-import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
 
 def separate_csv(path_file, separator):
     lines = []
@@ -31,14 +29,4 @@ def plot_csv(path_file, separator, x_index, y_indexs, x_label, y_label, title, p
     plt.show()
 
     plt.close()
-
-def plot_weights(path_file, separator):
-    lines = []
-    with open(path_file, "r") as f:
-        lines = f.readlines()[0]
-    lines = lines.split(separator)
-    plt.plot([x for x in range(len(lines[1:]))], lines[1:], "g-", label=lines[0])
-    #plt.grid()
-    plt.show()
-
 

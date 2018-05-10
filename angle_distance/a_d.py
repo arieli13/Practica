@@ -8,12 +8,15 @@ import re
 from defined_variables import *
 sys.path.append("../classes/Log")
 sys.path.append("../classes")
-from LogWeight import LogWeight
 from PersistanceManager import PersistanceManager
 from LogString import LogString
 from graphics import plot_csv
+import time
 
-
+def summary_weights(w, n_inputs, n_nodes, name):
+    for i in range(n_inputs):
+        for j in range(n_nodes):
+            tf.summary.scalar("%d_%d" % (i,j), w[i][j])
 
 def create_layer(inputs, n_inputs_nodes, n_nodes, name, 
                  activation_function=None, rate_prob=None, num_summaries=10):
@@ -38,6 +41,7 @@ def create_layer(inputs, n_inputs_nodes, n_nodes, name,
             [n_inputs_nodes, n_nodes], 0.0, 0.1, tf.float32), name="weight")
         b = tf.Variable(tf.random_normal([n_nodes], 0.0, 0.1, tf.float32), name="biases")
         o = tf.add(tf.matmul(inputs, w), b)
+        summary_weights(w, n_inputs, n_nodes, name)
         if activation_function is not None:
             o = activation_function(o)
         if rate_prob is not None:
@@ -85,9 +89,7 @@ prediction, saved_variables = create_model()
 cost_mse = tf.losses.mean_squared_error(labels=Y, predictions=prediction)
 optimizer = tf.train.AdamOptimizer(
     learning_rate=learning_rate).minimize(cost_mse)
-
 cost_rmse = tf.sqrt(tf.losses.mean_squared_error(labels=Y, predictions=prediction))
-
 
 def train(sess, persistance_manager):
     """
@@ -103,15 +105,11 @@ def train(sess, persistance_manager):
         saver: The one who saves the variables.
         ckpt: The next checkpoint of the saved variables.
     """
-    
     #######
-    log_weights_variables = []
-    for i in saved_variables:
-        if(re.match(".*weight.*", i)):  # Just weights, excludes biases
-            log_weights_variables.append(saved_variables[i])
+    summaries = []
+    merged_summary_op = tf.summary.merge_all()
+    summary_writer = tf.summary.FileWriter("./logs", graph=tf.get_default_graph())
     #######
-    
-    weight_log = LogWeight(weight_log_path, "w+", log_weights_variables, sess, header="iteration,layer,row_col,value\n")
     error_log = LogString(error_log_path, "w+", "iteration,train_error,test_error\n")
 
     for iteration in range(iterations):
@@ -125,11 +123,11 @@ def train(sess, persistance_manager):
             inputs, labels = training_dataset.get_next()
             _, cost_aux = sess.run(
                 [optimizer, cost_mse], feed_dict={X: inputs, Y: labels})
+            
             avg_cost_train += cost_aux
-        
-        weight_log.log_weights()
-        weight_log.save()
-        
+        summarie = sess.run(merged_summary_op)
+        summaries.append(summarie)
+
         # Begin testing
         testing_dataset.restore_index()
         avg_cost_test = 0
@@ -145,8 +143,10 @@ def train(sess, persistance_manager):
         error_log.log_string([train_error, test_error])
     
     error_log.close_file()
-    #persistance_manager.save_variables()
-    weight_log.close_file()
+    for i in range(len(summaries)):
+        summary_writer.add_summary( summaries[i], i )
+    
+    persistance_manager.save_variables()
 
 
 def test(sess):
