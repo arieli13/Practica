@@ -3,6 +3,7 @@ import random
 
 class ListClassicDataset(ClassicDataset):
 
+
     def __init__(self, dataset_path, batch_size, input_number, output_number, separator, lines_ignore, take=None):
         super(ListClassicDataset, self).__init__(dataset_path, batch_size, input_number, output_number, separator, lines_ignore, take)
         self._load_dataset()

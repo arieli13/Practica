@@ -15,7 +15,7 @@ dataset_path_train = "../../datasets_angle_distance/cart_leftArmMovement_train.c
 dataset_path_test = "../../datasets_angle_distance/cart_leftArmMovement.csv"
 
 train_registers = 500
-generations = 10
+generations = 100
 
 dataset_train = ListClassicDataset(dataset_path_train, 1, 4, 2, ",", 1, train_registers)
 dataset_test = ListClassicDataset(dataset_path_test, 1, 4, 2, ",", 1)

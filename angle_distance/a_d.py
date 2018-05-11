@@ -184,8 +184,8 @@ def main():
         persistance_manager = PersistanceManager(sess, saved_variables, "./checkpoints/")  # For the checkpoints
         persistance_manager.load_variables()
         train(sess, persistance_manager)
-        test(sess)
-        plot_csv(error_log_path, ",", 0,[1, 2], "Iteration", "Value", "Error log", ["g+", "r-"])
+        #test(sess)
+        plot_csv(error_log_path, ",", 0,[1, 2], "Iteration", "Value", "Error log", ["g-", "r-"])
 
 
 if __name__ == '__main__':
