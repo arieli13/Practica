@@ -11,11 +11,11 @@ from ListClassicDataset import ListClassicDataset
 from LogString import LogString
 from OwnReporter import OwnReporter
 
-dataset_path_train = "../../datasets_angle_distance/cart_leftArmMovement_train.csv"
-dataset_path_test = "../../datasets_angle_distance/cart_leftArmMovement.csv"
+dataset_path_train = "../../datasets_angle_distance/half_half_train.csv"
+dataset_path_test = "../../datasets_angle_distance/dis_act_leftArmMovement_test.csv"
 
-train_registers = 500
-generations = 100
+train_registers = 400
+generations = 2000
 
 dataset_train = ListClassicDataset(dataset_path_train, 1, 4, 2, ",", 1, train_registers)
 dataset_test = ListClassicDataset(dataset_path_test, 1, 4, 2, ",", 1)

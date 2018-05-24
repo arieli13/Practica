@@ -1,0 +1,8 @@
+Full dataset RMSE train: 0.0608
+Full dataset RMSE test: 0.049742
+
+Angle RMSE test: 0.445156
+Angle stddev: 2.703910
+
+Distance RMSE: 0.013656
+Distance stddev: 0.000888 

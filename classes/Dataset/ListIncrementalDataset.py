@@ -3,8 +3,8 @@ import random
 
 class ListIncrementalDataset(IncrementalDataset):
     
-    def __init__(self, dataset_path, increment_size, input_number, output_number, separator, lines_ignore, take=None):
-        super(ListIncrementalDataset, self).__init__(dataset_path, increment_size, input_number, output_number, separator, lines_ignore, take)
+    def __init__(self, dataset_path, increment_size, input_number, output_number, separator, lines_ignore, buffer_size, take=None):
+        super(ListIncrementalDataset, self).__init__(dataset_path, increment_size, input_number, output_number, separator, lines_ignore, buffer_size, take)
         self._load_dataset()
         self.increment_dataset()
     
@@ -13,6 +13,9 @@ class ListIncrementalDataset(IncrementalDataset):
             self._dataset.append(self._full_dataset.pop())
         self._size_full_dataset -= self._increment_size
         self._size += self._increment_size
+        if self._size > self._buffer_size:
+            self._dataset = self._dataset[self._size-self._buffer_size:]
+            self._size = self._buffer_size
         self._increments_done += 1
     
     def get_next(self): 

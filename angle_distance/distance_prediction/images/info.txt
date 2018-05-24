@@ -1,0 +1,4 @@
+400 iter
+RMSE train: 0.001732
+RMSE test: 0.007042
+Stddev test: 0.000117

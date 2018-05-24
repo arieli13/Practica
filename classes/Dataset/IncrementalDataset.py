@@ -19,7 +19,8 @@ class IncrementalDataset(Dataset):
     __metaclass__ = ABCMeta
 
     def __init__(self, dataset_path, increment_size, input_number,
-                 output_number, separator, lines_ignore, take=None):
+                 output_number, separator, lines_ignore, 
+                 buffer_size, take=None):
         """Initialize the atributes.
 
         Args:
@@ -32,6 +33,7 @@ class IncrementalDataset(Dataset):
             separator: Separator between columns on the csv file.
             lines_ignore: Number of lines to ignore at the beginning of the
                           csv.
+            buffer_size: Size of the buffer of the dataset.
             take: Number of lines to read from the csv.
         """
         super(IncrementalDataset, self).__init__(dataset_path, input_number,
@@ -43,6 +45,7 @@ class IncrementalDataset(Dataset):
         self._increments_done = 0
         self._full_dataset = None
         self._num_of_increments = 0
+        self._buffer_size = buffer_size
 
     @abstractmethod
     def increment_dataset(self):

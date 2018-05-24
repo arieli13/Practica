@@ -48,4 +48,3 @@ def plot_csv(path_file, separator, x_index, y_indexs, x_label, y_label, title,
     plt.show()
 
     plt.close()
-
