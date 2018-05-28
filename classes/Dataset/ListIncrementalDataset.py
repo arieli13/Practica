@@ -3,9 +3,11 @@ import random
 
 class ListIncrementalDataset(IncrementalDataset):
     
-    def __init__(self, dataset_path, increment_size, input_number, output_number, separator, lines_ignore, buffer_size, take=None):
+    def __init__(self, dataset_path, increment_size, input_number, output_number, separator, lines_ignore, buffer_size, take=None, repeat=1):
         super(ListIncrementalDataset, self).__init__(dataset_path, increment_size, input_number, output_number, separator, lines_ignore, buffer_size, take)
         self._load_dataset()
+        self._repeat = repeat
+        self.__repeat()
         self.increment_dataset()
     
     def increment_dataset(self):
@@ -51,3 +53,8 @@ class ListIncrementalDataset(IncrementalDataset):
     
     def shuffle(self):
         random.shuffle(self._dataset)
+    
+    def __repeat(self):
+        self._full_dataset = self._full_dataset*self._repeat
+        self._size_full_dataset *= self._repeat
+        self._num_of_increments *= self._repeat
