@@ -1,60 +1,33 @@
-"""Creates a iterator and a dataset..."""
-
 import tensorflow as tf
+import time
+pnode_number = 0
 
+def read_datasets(path, training_registers, skip):
+    train = []
+    validation = []
+    test = []
+    with open(path) as f:
+        lines = f.readlines()[skip:]
+        lines =  [ [[y[:8]], [y[8:]]] for y in [[float(k) for k in i.split(",")] for i in lines ]]
+        print(lines[0])
+        train = lines[:training_registers]
+        validation = lines[training_registers:]
+        test = lines[:]
+    return train, validation, test
 
-def parse_line(line):
-    """Take an string input and returns the features and labels for a neural network...
+        
 
-    Args:
-        line: A string as follows: "ball_in_right_hand ball_dist box_size ball_in_left_hand box_ang ball_ang box_dist ball_size Confidence"
-
-    Returns:
-        features: tf.stack() with a list of floats inside as follows: [ball_in_right_hand, ball_dist, box_size, ball_in_left_hand, box_ang, ball_ang, box_dist, ball_size]
-        labels: tf.stack() with a list of float inside as follows: [Confidence]
-
-    """
-    ball_in_right_hand, ball_dist, box_size, ball_in_left_hand, box_ang, ball_ang, box_dist, ball_size, Confidence = tf.decode_csv(
-        line, [[0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0], [0.0]], field_delim=" ")
-    features = tf.stack([ball_in_right_hand, ball_dist, box_size,
-                         ball_in_left_hand, box_ang, ball_ang, box_dist, ball_size])
-    labels = tf.stack([Confidence])
-    return features, labels
-
-
-def create_dataset(path):
-    """Create a dataset from a specific csv...
-
-    Each line of the csv must be separated with carriage return and each value of the line must be separated with blanck space.
-    Have to be 5 float values each line.
-
-    Args:
-        path: The path of the csv
-
-    Returns:
-        dataset: The dataset of the csv passed over parameter.
-
-    """
-    dataset = tf.data.TextLineDataset(path)
-    dataset = dataset.map(parse_line)
-    return dataset
-
-
-def create_iterator(dataset):
-    """Create a iterator from a dataset...
-
-    Args:
-        dataset: A previous created dataset. Has to be an instance of tf.data.Dataset.
-
-    Return:
-        Returns a dictionary with following values:
-            iterator: The initialized iterator for the dataset.
-            initializer: The initializer of the iterator. To restart it each time it is empty.
-            feature: The feature returned from the iterator to train the neural network.
-            label: The label returned from the iterator to compare with prediction of the nn.  
-
-    """
-    iterator = dataset.make_initializable_iterator()
-    initializer = iterator.make_initializer(dataset)
-    feature, label = iterator.get_next()
-    return {"iterator": iterator, "initializer": initializer, "feature": feature, "label": label}
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    sess.run(tf.local_variables_initializer())
+    
+    train, val, test, train_i, val_i, test_i = create_datasets("./datasets/normalized/pnode%d.csv"%(pnode_number), 500, 1)
+    sess.run([train_i, val_i, test_i])
+    cont = 0
+    start = time.time()
+    try:
+        while True:
+            sess.run(test.get_next())
+            cont += 1
+    except tf.errors.OutOfRangeError:
+        print("%f"%(time.time()-start))
