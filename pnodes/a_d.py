@@ -13,6 +13,7 @@ from PersistanceManager import PersistanceManager
 from LogString import LogString
 import Graphics as gf
 import time
+import keyboard
 
 final_train_error = 0.0
 final_test_error = 0.0
@@ -94,18 +95,21 @@ def create_model():
 prediction, saved_variables = create_model()
 
 cost_mse = tf.losses.mean_squared_error(labels=Y, predictions=prediction)
+cost_placeholder = tf.placeholder(tf.float32)
+cost_variable = tf.Variable(0.0)
+cost_variable_op = tf.assign(cost_variable, cost_placeholder)
 optimizer = tf.train.GradientDescentOptimizer(
     learning_rate=learning_rate).minimize(cost_mse)
 #optimizer = tf.train.AdagradDAOptimizer(learning_rate, tf.cast(0, tf.int64)).minimize(cost_mse)
 cost_rmse = tf.sqrt(tf.losses.mean_squared_error(labels=Y, predictions=prediction))
 
 
-def stochastic_train(sess, persistance_manager):
+def stochastic_train_memory(sess, persistance_manager):
     
     global final_test_error, final_train_error
     
-    error_log = LogString(error_log_path, "w+", "iteration,train_error,test_error\n")
-    time_log = LogString(time_log_path, "w+", "iteration,time\n")
+    error_log = LogString(error_log_path, "w+", "train_step,train_error,test_error\n")
+    time_log = LogString(time_log_path, "w+", "train_step,time\n")
     train_step_count = 0
     iteration = 0
     #sess.run(training_mode_op, feed_dict={mode: False})
@@ -114,7 +118,6 @@ def stochastic_train(sess, persistance_manager):
     memory = []
     memory_len = 0
     for x_train, y_train in train_dataset:
-        #sess.run(training_mode_op, feed_dict={mode: False})
         memory.append([x_train, y_train])
         memory_len += 1
         if memory_len > memory_size:
@@ -123,13 +126,14 @@ def stochastic_train(sess, persistance_manager):
 
         for train_step in range(train_steps):
             avg_cost_train = 0
+            sess.run(training_mode_op, feed_dict={mode: True})
             step_start_t = time.time()
             for x, y in memory:
                 _, cost_aux = sess.run([optimizer, cost_mse], feed_dict={X: x, Y: y})
                 avg_cost_train += cost_aux
             step_finish_t = time.time()
             avg_cost_test = 0
-            #sess.run(training_mode_op, feed_dict={mode: False})
+            sess.run(training_mode_op, feed_dict={mode: False})
             for x_validation, y_validation in validation_dataset:
                 cost_aux = sess.run(cost_rmse, feed_dict={X: x_validation, Y: y_validation})
                 avg_cost_test += cost_aux
@@ -146,6 +150,112 @@ def stochastic_train(sess, persistance_manager):
         if iteration != 0 and iteration % 100 == 0:
             time_log.save()
             error_log.save()
+            persistance_manager.save_variables()
+        iteration += 1
+    error_log.close_file()
+    time_log.close_file()
+    
+def stochastic_train(sess, persistance_manager):
+    global final_test_error, final_train_error
+    
+    error_log = LogString(error_log_path, "w+", "iteration,train_error,test_error\n")
+    time_log = LogString(time_log_path, "w+", "iteration,time\n")
+    train_step_count = 0
+    iteration = 0
+    #sess.run(training_mode_op, feed_dict={mode: False})
+    
+    validation_dataset_size = len(validation_dataset)
+    for x_train, y_train in train_dataset:
+        sess.run(training_mode_op, feed_dict={mode: True})
+        iteration_start_t = time.time()
+        avg_cost_train = 0
+        for train_step in range(train_steps):
+            _, cost_aux = sess.run([optimizer, cost_mse], feed_dict={X: x_train, Y: y_train})
+            avg_cost_train += cost_aux
+        iteration_finish_t = time.time()
+        avg_cost_test = 0
+        sess.run(training_mode_op, feed_dict={mode: False})
+        for x_validation, y_validation in validation_dataset:
+            cost_aux = sess.run(cost_rmse, feed_dict={X: x_validation, Y: y_validation})
+            avg_cost_test += cost_aux
+
+        train_error = avg_cost_train/train_steps
+        test_error = avg_cost_test/validation_dataset_size
+        final_train_error = train_error
+        final_test_error = test_error
+        print("Iteration: %d\ttrain cost: %f\ttest cost: %f" % (
+            train_step_count, train_error, test_error))
+        train_step_count += 1
+        error_log.log_string([train_error, test_error])
+        time_log.log_string([iteration_finish_t-iteration_start_t])
+        if iteration != 0 and iteration % 100 == 0:
+            time_log.save()
+            error_log.save()
+            #persistance_manager.save_variables()
+        iteration += 1
+    error_log.close_file()
+    time_log.close_file()
+
+def batch_dataset(size_of_batches):
+    global train_dataset
+    inputs = []
+    labels = []
+    size = len(train_dataset)
+    for i in train_dataset:
+        inputs_aux, labels_aux = i
+        inputs.append(inputs_aux[0])
+        labels.append(labels_aux[0])
+    if size_of_batches == 0 or size_of_batches == 1:
+        train_dataset = [inputs, labels]
+    else:
+        num_of_batches = size//size_of_batches
+        data = []
+        for i in range(num_of_batches):
+            data.append( [ inputs[i*size_of_batches:(i+1)*size_of_batches], labels[i*size_of_batches:(i+1)*size_of_batches]  ] )
+        train_dataset = data
+
+
+
+def batch_train(sess, persistance_manager):
+    global final_test_error, final_train_error
+    batch_dataset(5)
+    error_log = LogString(error_log_path, "w+", "iteration,train_error,test_error\n")
+    time_log = LogString(time_log_path, "w+", "iteration,time\n")
+    train_step_count = 0
+    iteration = 0
+    #sess.run(training_mode_op, feed_dict={mode: False})
+    
+    validation_dataset_size = len(validation_dataset)
+    avg_cost_train = 0
+    while not keyboard.is_pressed('q'):
+        #sess.run(training_mode_op, feed_dict={mode: True})
+        iteration_start_t = time.time()
+        avg_cost_train = 0
+        for inputs, labels in train_dataset:
+
+            train_error, _ = sess.run([cost_mse, optimizer], feed_dict={X: inputs, Y: labels})
+            avg_cost_train += train_error
+        avg_cost_train /= len(train_dataset)
+        train_error = avg_cost_train
+
+        iteration_finish_t = time.time()
+        avg_cost_test = 0
+        sess.run(training_mode_op, feed_dict={mode: False})
+        for x_validation, y_validation in validation_dataset:
+            cost_aux = sess.run(cost_rmse, feed_dict={X: x_validation, Y: y_validation})
+            avg_cost_test += cost_aux
+        test_error = avg_cost_test/validation_dataset_size
+        final_train_error = train_error
+        final_test_error = test_error
+        print("Iteration: %d\ttrain cost: %f\ttest cost: %f" % (
+            train_step_count, train_error, test_error))
+        train_step_count += 1
+        error_log.log_string([train_error, test_error])
+        time_log.log_string([iteration_finish_t-iteration_start_t])
+        if iteration != 0 and iteration % 100 == 0:
+            time_log.save()
+            error_log.save()
+            #persistance_manager.save_variables()
         iteration += 1
     error_log.close_file()
     time_log.close_file()
@@ -278,7 +388,8 @@ def main():
         predictions_log_path += "_%d.csv"%(exec_number)
         time_log_path += "_%d.csv"%(exec_number)
         start_time = time.time()
-        stochastic_train(sess, persistance_manager)
+        #stochastic_train_memory(sess, persistance_manager)
+        batch_train(sess, persistance_manager)
         finish_time = time.time()
         exec_time = finish_time-start_time
         print("Training time: %f"%(exec_time))

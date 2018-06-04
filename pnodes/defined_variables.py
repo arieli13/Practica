@@ -8,10 +8,10 @@ n_inputs = 8  # Inputs for the NN
 n_outputs = 1  # Outputs of the NN
 
 hidden_layers_nodes = [15, 10]  # Nodes in each hidden layer
-hidden_layers_ac_fun = [tf.nn.relu, tf.nn.relu]  # Activation functions of each hidden layers
-dropout_rate = [0.1, 0.1, 0.1]  # Dropout rate of te hidden layers
+hidden_layers_ac_fun = [tf.nn.relu]*len(hidden_layers_nodes)  # Activation functions of each hidden layers
+dropout_rate = [0.5]*len(hidden_layers_nodes)  # Dropout rate of te hidden layers
 
-learning_rate = 0.1
+learning_rate = 0.5
 
 training = tf.Variable(False)  # If true than dropout is activated else it is not
 mode = tf.placeholder(tf.bool)
@@ -21,9 +21,9 @@ X = tf.placeholder(tf.float32, [None, n_inputs])  # Inputs for the NN
 Y = tf.placeholder(tf.float32, [None, n_outputs])  # Labels for the NN
 
 training_finish_reading = 500
-memory_size = 100
-train_steps = 100  # Number of iterations of the training
-pnode_number = 0
+memory_size = 500
+train_steps = 5  # Number of train steps of the training
+pnode_number = 20
 
 def read_datasets(path, training_registers, skip):
     train = []
