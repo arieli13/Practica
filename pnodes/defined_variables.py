@@ -7,23 +7,29 @@ from ListIncrementalDataset import ListIncrementalDataset
 n_inputs = 8  # Inputs for the NN
 n_outputs = 1  # Outputs of the NN
 
-hidden_layers_nodes = [15, 10]  # Nodes in each hidden layer
+hidden_layers_nodes = [128, 64, 64, 32]  # Nodes in each hidden layer
 hidden_layers_ac_fun = [tf.nn.relu]*len(hidden_layers_nodes)  # Activation functions of each hidden layers
-dropout_rate = [0.5]*len(hidden_layers_nodes)  # Dropout rate of te hidden layers
+hidden_layers_ac_fun_names = ["relu"]*len(hidden_layers_nodes)
+dropout_rate = [0.1]*len(hidden_layers_nodes)  # Dropout rate of te hidden layers
+train_dropout = False
+learning_rate = 0.0001
 
-learning_rate = 0.5
+beta_1 = 0.9
+beta_2 = 0.999
+epsilon = 1e-8
 
-training = tf.Variable(False)  # If true than dropout is activated else it is not
+training = tf.Variable(train_dropout)  # If true than dropout is activated else it is not
 mode = tf.placeholder(tf.bool)
 training_mode_op = tf.assign(training, mode)  # Operation to change the training variable value
 
 X = tf.placeholder(tf.float32, [None, n_inputs])  # Inputs for the NN
 Y = tf.placeholder(tf.float32, [None, n_outputs])  # Labels for the NN
 
-training_finish_reading = 500
-memory_size = 500
-train_steps = 5  # Number of train steps of the training
-pnode_number = 20
+training_finish_reading = 250
+memory_size = 100
+mini_batch_size = 5
+train_steps = 25  # Number of train steps of the training
+pnode_number = 13
 
 def read_datasets(path, training_registers, skip):
     train = []

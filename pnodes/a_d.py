@@ -14,11 +14,13 @@ from LogString import LogString
 import Graphics as gf
 import time
 import keyboard
+import tensorflow as tf
 
 final_train_error = 0.0
 final_test_error = 0.0
 final_fulltest_error = 0.0
 final_fulltest_stddev = 0.0
+train_type = ""
 
 def summary_weights(w, n_inputs, n_nodes, name):
     for i in range(n_inputs):
@@ -98,15 +100,37 @@ cost_mse = tf.losses.mean_squared_error(labels=Y, predictions=prediction)
 cost_placeholder = tf.placeholder(tf.float32)
 cost_variable = tf.Variable(0.0)
 cost_variable_op = tf.assign(cost_variable, cost_placeholder)
-optimizer = tf.train.GradientDescentOptimizer(
-    learning_rate=learning_rate).minimize(cost_mse)
+optimizer = tf.train.AdamOptimizer(
+    learning_rate=learning_rate, beta1=beta_1, beta2=beta_2, epsilon=epsilon).minimize(cost_mse)
 #optimizer = tf.train.AdagradDAOptimizer(learning_rate, tf.cast(0, tf.int64)).minimize(cost_mse)
 cost_rmse = tf.sqrt(tf.losses.mean_squared_error(labels=Y, predictions=prediction))
 
 
-def stochastic_train_memory(sess, persistance_manager):
+def batch_memory(memory):
+    inputs = []
+    labels = []
+    data = []
+    size = len(memory)
+    for i in memory:
+        inputs_aux, labels_aux = i
+        inputs.append(inputs_aux[0])
+        labels.append(labels_aux[0])
+    if mini_batch_size == 0 or mini_batch_size == 1:
+        memory = [inputs, labels]
+    else:
+        num_of_batches = size//mini_batch_size
+        for i in range(num_of_batches):
+            data.append( [ inputs[i*mini_batch_size:(i+1)*mini_batch_size], labels[i*mini_batch_size:(i+1)*mini_batch_size]  ] )
+        if num_of_batches == 0:
+            data.append( [ inputs[:mini_batch_size], labels[:mini_batch_size]  ] )
+    return data
+
+
+
+def stochastic_train_mini_batch(sess, persistance_manager):
     
-    global final_test_error, final_train_error
+    global final_test_error, final_train_error, train_type
+    train_type = "Stochastic_Mini-batch"
     
     error_log = LogString(error_log_path, "w+", "train_step,train_error,test_error\n")
     time_log = LogString(time_log_path, "w+", "train_step,time\n")
@@ -118,17 +142,23 @@ def stochastic_train_memory(sess, persistance_manager):
     memory = []
     memory_len = 0
     for x_train, y_train in train_dataset:
+        if keyboard.is_pressed('q'):
+            break
         memory.append([x_train, y_train])
         memory_len += 1
         if memory_len > memory_size:
             memory = memory[1:]
             memory_len = memory_size
 
+        total_time = 0
         for train_step in range(train_steps):
+            if keyboard.is_pressed('q'):
+                break
             avg_cost_train = 0
-            sess.run(training_mode_op, feed_dict={mode: True})
+            sess.run(training_mode_op, feed_dict={mode: train_dropout})
             step_start_t = time.time()
-            for x, y in memory:
+            memory_aux = batch_memory(memory)
+            for x,y in memory_aux:
                 _, cost_aux = sess.run([optimizer, cost_mse], feed_dict={X: x, Y: y})
                 avg_cost_train += cost_aux
             step_finish_t = time.time()
@@ -146,17 +176,78 @@ def stochastic_train_memory(sess, persistance_manager):
                 train_step_count, train_error, test_error))
             train_step_count += 1
             error_log.log_string([train_error, test_error])
-            time_log.log_string([step_finish_t-step_start_t])
+            total_time += (step_finish_t-step_start_t)
         if iteration != 0 and iteration % 100 == 0:
             time_log.save()
             error_log.save()
-            persistance_manager.save_variables()
+            #persistance_manager.save_variables()
         iteration += 1
+        time_log.log_string([total_time])
     error_log.close_file()
     time_log.close_file()
     
+
+def stochastic_train_memory(sess, persistance_manager):
+    
+    global final_test_error, final_train_error, train_type
+    train_type = "Stochastic_Memory"
+    
+    error_log = LogString(error_log_path, "w+", "train_step,train_error,test_error\n")
+    time_log = LogString(time_log_path, "w+", "train_step,time\n")
+    train_step_count = 0
+    iteration = 0
+    #sess.run(training_mode_op, feed_dict={mode: False})
+    
+    validation_dataset_size = len(validation_dataset)
+    memory = []
+    memory_len = 0
+    for x_train, y_train in train_dataset:
+        if keyboard.is_pressed('q'):
+            break
+        memory.append([x_train, y_train])
+        memory_len += 1
+        if memory_len > memory_size:
+            memory = memory[1:]
+            memory_len = memory_size
+        total_time = 0
+        for train_step in range(train_steps):
+            if keyboard.is_pressed('q'):
+                break
+            avg_cost_train = 0
+            sess.run(training_mode_op, feed_dict={mode: train_dropout})
+            step_start_t = time.time()
+            for x,y in memory:
+                _, cost_aux = sess.run([optimizer, cost_mse], feed_dict={X: x, Y: y})
+                avg_cost_train += cost_aux
+            step_finish_t = time.time()
+            avg_cost_test = 0
+            sess.run(training_mode_op, feed_dict={mode: False})
+            for x_validation, y_validation in validation_dataset:
+                cost_aux = sess.run(cost_rmse, feed_dict={X: x_validation, Y: y_validation})
+                avg_cost_test += cost_aux
+
+            train_error = avg_cost_train/memory_len
+            test_error = avg_cost_test/validation_dataset_size
+            final_train_error = train_error
+            final_test_error = test_error
+            print("Train_step: %d\ttrain cost: %f\ttest cost: %f" % (
+                train_step_count, train_error, test_error))
+            train_step_count += 1
+            error_log.log_string([train_error, test_error])
+            total_time += (step_finish_t-step_start_t)
+        if iteration != 0 and iteration % 100 == 0:
+            time_log.save()
+            error_log.save()
+            #persistance_manager.save_variables()
+        iteration += 1
+        time_log.log_string([total_time])
+    error_log.close_file()
+    time_log.close_file()
+
+
 def stochastic_train(sess, persistance_manager):
-    global final_test_error, final_train_error
+    global final_test_error, final_train_error, train_type
+    train_type = "Stochastic"
     
     error_log = LogString(error_log_path, "w+", "iteration,train_error,test_error\n")
     time_log = LogString(time_log_path, "w+", "iteration,time\n")
@@ -166,7 +257,9 @@ def stochastic_train(sess, persistance_manager):
     
     validation_dataset_size = len(validation_dataset)
     for x_train, y_train in train_dataset:
-        sess.run(training_mode_op, feed_dict={mode: True})
+        if keyboard.is_pressed('q'):
+            break
+        sess.run(training_mode_op, feed_dict={mode: train_dropout})
         iteration_start_t = time.time()
         avg_cost_train = 0
         for train_step in range(train_steps):
@@ -217,7 +310,8 @@ def batch_dataset(size_of_batches):
 
 
 def batch_train(sess, persistance_manager):
-    global final_test_error, final_train_error
+    global final_test_error, final_train_error, train_steps, train_type
+    train_type = "Batch"
     batch_dataset(5)
     error_log = LogString(error_log_path, "w+", "iteration,train_error,test_error\n")
     time_log = LogString(time_log_path, "w+", "iteration,time\n")
@@ -228,9 +322,10 @@ def batch_train(sess, persistance_manager):
     validation_dataset_size = len(validation_dataset)
     avg_cost_train = 0
     while not keyboard.is_pressed('q'):
-        #sess.run(training_mode_op, feed_dict={mode: True})
+        sess.run(training_mode_op, feed_dict={mode: train_dropout})
         iteration_start_t = time.time()
         avg_cost_train = 0
+  
         for inputs, labels in train_dataset:
 
             train_error, _ = sess.run([cost_mse, optimizer], feed_dict={X: inputs, Y: labels})
@@ -257,6 +352,7 @@ def batch_train(sess, persistance_manager):
             error_log.save()
             #persistance_manager.save_variables()
         iteration += 1
+    train_steps = iteration
     error_log.close_file()
     time_log.close_file()
 
@@ -371,7 +467,17 @@ def get_execution_number():
 def save_tests_logs(exec_number, time):
     f =  open("./tests/log.csv", "a+")
     nodes_string = " ".join([str(i) for i in hidden_layers_nodes])
-    string = "%d,%d,%d,%f,%f,%f,%f,%s,%s,%s,%d,%f\n"%(exec_number, memory_size, train_steps, learning_rate, final_train_error, final_test_error, final_fulltest_error, final_fulltest_stddev, optimizer.name,nodes_string,pnode_number,time)
+    ac_fun = " ".join(hidden_layers_ac_fun_names)
+    dropout = []
+    if not train_dropout:
+        dropout.append("False")
+    else:
+        for i in dropout_rate:
+            dropout.append(str(i))
+    dropout = " ".join(dropout)
+    optimizer_name = "%s %f %f %f"%(optimizer.name, beta_1, beta_2, epsilon)
+    #optimizer_name = optimizer.name
+    string = "%d,%d,%d,%f,%f,%f,%f,%s,%s,%s,%d,%f,%s,%s,%s\n"%(exec_number, memory_size, train_steps, learning_rate, final_train_error, final_test_error, final_fulltest_error, final_fulltest_stddev, optimizer_name,nodes_string,pnode_number,time,ac_fun,dropout, train_type)
     f.write(string)
     f.close()
 
@@ -388,8 +494,9 @@ def main():
         predictions_log_path += "_%d.csv"%(exec_number)
         time_log_path += "_%d.csv"%(exec_number)
         start_time = time.time()
-        #stochastic_train_memory(sess, persistance_manager)
-        batch_train(sess, persistance_manager)
+        #stochastic_train(sess, persistance_manager)
+        stochastic_train_mini_batch(sess, persistance_manager)
+        #batch_train(sess, persistance_manager)
         finish_time = time.time()
         exec_time = finish_time-start_time
         print("Training time: %f"%(exec_time))
@@ -398,6 +505,6 @@ def main():
         gf.plot_csv(error_log_path, ",", 0,[1, 2], "Iteration", "Value", "Error log", ["g.", "r."], True, "C:/Users/Usuario/Desktop/ariel/Practica/pnodes/tests/errors_images/%d_e.png"%(exec_number))
         gf.plot_csv(predictions_log_path, ",", 0, [1,2], "Iteration", "Value", "Predictions log", ["r+", "ko"], True, "C:/Users/Usuario/Desktop/ariel/Practica/pnodes/tests/predictions_images/%d_p.png"%(exec_number))
         gf.plot_csv(time_log_path, ",", 0, [1], "Iteration", "Seconds", "Times log", ["k."], False, "C:/Users/Usuario/Desktop/ariel/Practica/pnodes/tests/times_images/%d_t.png"%(exec_number))
-
+        print(exec_number)
 if __name__ == '__main__':
     main()

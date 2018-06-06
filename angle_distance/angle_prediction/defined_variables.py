@@ -7,7 +7,7 @@ from ListIncrementalDataset import ListIncrementalDataset
 n_inputs = 3  # Inputs for the NN
 n_outputs = 1  # Outputs of the NN
 
-hidden_layers_nodes = [30, 25, 20]  # Nodes in each hidden layer
+hidden_layers_nodes = [10, 5, 5]  # Nodes in each hidden layer
 hidden_layers_ac_fun = [tf.sin, tf.cos, tf.atan]  # Activation functions of each hidden layers
 dropout_rate = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]  # Dropout rate of te hidden layers
 

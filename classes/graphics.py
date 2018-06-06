@@ -19,7 +19,7 @@ def separate_csv(path_file, separator):
 
 
 def plot_csv(path_file, separator, x_index, y_indexs, x_label, y_label, title,
-             printable_lines):
+             printable_lines, show, save=None, return_plot=False):
     """Plot the csv file.
     
     Args:
@@ -45,6 +45,11 @@ def plot_csv(path_file, separator, x_index, y_indexs, x_label, y_label, title,
     plt.ylabel(y_label)
     plt.legend(loc='best')
     plt.grid()
-    plt.show()
-
-    plt.close()
+    if save is not None:
+        plt.savefig(save)
+    if show:
+        plt.show()
+    if not return_plot:
+        plt.close()
+    else:
+        return plt

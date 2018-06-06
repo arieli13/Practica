@@ -236,14 +236,14 @@ def test(sess):
 def main():
     """Execute program."""
     with tf.Session() as sess:
-        """
+        
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
         persistance_manager = PersistanceManager(sess, saved_variables, "./checkpoints/")  # For the checkpoints
         persistance_manager.load_variables()
         train(sess, persistance_manager)
-        incremental_train(sess, persistance_manager)
-        test(sess)"""
+        #incremental_train(sess, persistance_manager)
+        test(sess)
         gf.plot_csv(error_log_path, ",", 0,[1, 2], "Iteration", "Value", "Error log", ["g-", "r-"])
         gf.plot_csv(predictions_log_path, ",", 2, [1,2], "Iteration", "Value", "Predictions log", ["r+", "ko"])
 
