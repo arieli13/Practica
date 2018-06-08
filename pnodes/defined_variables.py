@@ -29,7 +29,7 @@ training_finish_reading = 250
 memory_size = 100
 mini_batch_size = 5
 train_steps = 25  # Number of train steps of the training
-pnode_number = 13
+pnode_number = 2
 
 def read_datasets(path, training_registers, skip):
     train = []

@@ -115,7 +115,7 @@ def batch_memory(memory):
         inputs_aux, labels_aux = i
         inputs.append(inputs_aux[0])
         labels.append(labels_aux[0])
-    if mini_batch_size == 0 or mini_batch_size == 1:
+    if mini_batch_size == 0:
         memory = [inputs, labels]
     else:
         num_of_batches = size//mini_batch_size
@@ -356,76 +356,6 @@ def batch_train(sess, persistance_manager):
     error_log.close_file()
     time_log.close_file()
 
-def incremental_train(sess, persistance_manager):
-    #######
-    summaries = []
-    global final_test_error, final_train_error
-    #merged_summary_op = tf.summary.merge_all()
-    #summary_writer = tf.summary.FileWriter("./logs", graph=tf.get_default_graph())
-    #######
-    error_log = LogString(error_log_path, "w+", "iteration,train_error,test_error\n")
-    time_log = LogString(time_log_path, "w+", "iteration,time\n")
-    train_step_count = 0
-    iteration = 0
-    sess.run(training_mode_op, feed_dict={mode: False})
-    l_r = learning_rate
-    while not training_increment_dataset.increment_out_of_range():
-        iteration_start_t = time.time() 
-        # Begin training
-        if iteration % 100 == 0 and iteration != 0:
-            alpha = 0.0
-            cosine_decay = 0.5*(1+math.cos(math.pi * iteration))
-            decayed = (1-alpha) * cosine_decay + alpha
-            l_r = learning_rate * decayed
-        for train_step in range(train_steps):
-            avg_cost_train = 0
-            training_increment_dataset.restore_index()
-            #training_increment_dataset.shuffle()
-            #sess.run(training_mode_op, feed_dict={mode: False})
-            #l_r = l_r / (train_step+1)
-            while(not training_increment_dataset.dataset_out_of_range()):
-                inputs, labels = training_increment_dataset.get_next()
-                _, cost_aux = sess.run(
-                    [optimizer, cost_mse], feed_dict={X: inputs, Y: labels, learning_rate_placeholder: l_r})
-                
-                avg_cost_train += cost_aux
-        
-            #summarie = sess.run(merged_summary_op)
-            #summaries.append(summarie)
-            # Begin testing
-            testing_dataset.restore_index()
-            avg_cost_test = 0
-
-            #sess.run(training_mode_op, feed_dict={mode: False})
-            while(not testing_dataset.dataset_out_of_range()):
-                inputs, labels = testing_dataset.get_next()
-                cost_aux = sess.run(cost_rmse, feed_dict={X: inputs, Y: labels})
-                avg_cost_test += cost_aux
-            train_error = avg_cost_train/(training_increment_dataset.get_size()*train_steps)
-            test_error = avg_cost_test/testing_dataset.get_size()
-            
-            final_train_error = train_error
-            final_test_error = test_error
-            
-            print("train_step_count: %d\ttrain cost: %f\ttest cost: %f" % (
-                train_step_count, train_error, test_error))
-            train_step_count += 1
-            error_log.log_string([train_error[0][0], test_error])
-        iteration_finish_t = time.time()
-        error_log.save()
-        time_log.log_string([iteration_finish_t-iteration_start_t])
-        training_increment_dataset.increment_dataset()
-        if iteration != 0 and iteration % 100 == 0:
-            time_log.save()
-        iteration += 1
-    
-    error_log.close_file()
-    time_log.close_file()
-    #for i in range(len(summaries)):
-    #    summary_writer.add_summary( summaries[i], i )
-    
-    #persistance_manager.save_variables()
-
 def test(sess):
     """
     Tests the neuronal net with the full dataset.
@@ -477,7 +407,8 @@ def save_tests_logs(exec_number, time):
     dropout = " ".join(dropout)
     optimizer_name = "%s %f %f %f"%(optimizer.name, beta_1, beta_2, epsilon)
     #optimizer_name = optimizer.name
-    string = "%d,%d,%d,%f,%f,%f,%f,%s,%s,%s,%d,%f,%s,%s,%s\n"%(exec_number, memory_size, train_steps, learning_rate, final_train_error, final_test_error, final_fulltest_error, final_fulltest_stddev, optimizer_name,nodes_string,pnode_number,time,ac_fun,dropout, train_type)
+    memory_size_str = "%d %d"%(memory_size, mini_batch_size)
+    string = "%d,%s,%d,%f,%f,%f,%f,%s,%s,%s,%d,%f,%s,%s,%s\n"%(exec_number, memory_size_str, train_steps, learning_rate, final_train_error, final_test_error, final_fulltest_error, final_fulltest_stddev, optimizer_name,nodes_string,pnode_number,time,ac_fun,dropout, train_type)
     f.write(string)
     f.close()
 
