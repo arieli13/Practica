@@ -15,10 +15,11 @@ import time
 dataset_path = "../../pnodes/datasets/normalized/pnode0.csv"
 
 train_registers = 250
-generations = 500
+generations = 1
 memory_size = 100
 last_checkpoint = ""
 memory = []
+train_steps = 5
 
 time_log = LogString("./times_log.csv", "w+", "iteration,seconds\n", ",")
 
@@ -63,7 +64,7 @@ def fitness_function(genomes, config):
         genome.fitness = error*-1 #max
 
 
-def run(config_file, own_checkpointer):
+def run(config_file, own_checkpointer, winner_net, iteration, train_step):
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
                          config_file)
@@ -73,9 +74,11 @@ def run(config_file, own_checkpointer):
 
     #checkpointer_reporter = neat.Checkpointer(100, filename_prefix="./checkpoints/ckpt-")
     #p.add_reporter(own_checkpointer)
-    last_checkpoint = own_checkpointer.restore_checkpoint()
-    if last_checkpoint is not None:
-        p = last_checkpoint
+    #last_checkpoint = own_checkpointer.restore_checkpoint()
+    #if last_checkpoint is not None:
+        #p = last_checkpoint
+    if winner_net is not None:
+        p = winner_net
 
     p.add_reporter(OwnReporter())
     #stats = neat.StatisticsReporter()
@@ -84,30 +87,28 @@ def run(config_file, own_checkpointer):
     winner = p.run(fitness_function, generations)
 
     # Display the winning genome.
-    print('\nMemory_size: %d, Best genome: %f'%(len(memory), winner.fitness))
+    print('\nIteration: %d, Train step: %d, Best genome: %f'%(iteration, train_step, winner.fitness))
 
     winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
-    own_checkpointer.save_checkpoint(p.config, p.population, p.species)
-    node_names = {-1:'a', -2: 'x', -3: 'c', -4:'v', -5: 'b', -6: 'n', -7: 'q', 0: 'w', 1: 'n'}
-    #visualize.draw_net(config, winner, True, node_names=node_names, filename="./reports/Digraph.gv")
-    return winner_net
-    
-    #test(winner_net)
-    #visualize.plot_stats(stats, ylog=False, view=True, filename="./reports/avg_fitness.svg")
-    #visualize.plot_species(stats, view=True, filename="./reports/species.svg")
+    #own_checkpointer.save_checkpoint(p.config, p.population, p.species)
+    return winner_net, p
 
 def stochastic_train_memory(config_file):
     global memory, dataset_train
     winner_net = None
     own_checkpointer = OwnCheckpointer("./checkpoints/ckpt-")
+    winner = None
+    iteration = 0
     for i in dataset_train:
         memory.append(i)
         if len(memory) > memory_size:
             memory = memory[1:]
         start_time = time.time()
-        winner_net = run(config_file, own_checkpointer)
+        for j in range(train_steps):
+            winner_net, winner = run(config_file, own_checkpointer, winner, iteration, j)
         finish_time = time.time()
         time_log.log_string([finish_time-start_time])
+        iteration += 1
     test(winner_net)
     time_log.close_file()
     gf.plot_csv("./predictions.csv", ",", 0, [1, 2], "Iteration", "Value", "Predictions log", ["r+", "ko"], True, None)

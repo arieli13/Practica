@@ -1,0 +1,30 @@
+introduccion    robotica cognitiva
+                proyecto DREAM
+                arquitectura cognitiva DREAM
+                aprendizaje online en DREAM
+                objetivos
+                Tensorflow, Deep Learning
+                Metodologia
+                Experimentos
+                    Conjunto de entrenamiento y test
+                    Medidas de error y rendimiento
+                    NEAT
+                    Batch Learning
+                    Aprendizaje memoria
+                    Estocasticos (Explicación del ADAM)
+                    Otros pnodes
+                    Conclusiones
+                Integración
+                Discussion
+
+
+TODO
+
+Hacer pruebas con pnode0, tamaño de red 128 64 64 32
+    - Memoria de 100, 50 y 10
+        - 25 y 5 pasos de entrenamiento (GD)
+    - Hacer estocásticos tradicional con ADAM
+    - Mini batch sin memoria
+    - Con mini-batch y memoria
+    - Desplazar uno cada 5
+    

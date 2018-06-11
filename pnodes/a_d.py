@@ -102,7 +102,7 @@ cost_variable = tf.Variable(0.0)
 cost_variable_op = tf.assign(cost_variable, cost_placeholder)
 optimizer = tf.train.AdamOptimizer(
     learning_rate=learning_rate, beta1=beta_1, beta2=beta_2, epsilon=epsilon).minimize(cost_mse)
-#optimizer = tf.train.AdagradDAOptimizer(learning_rate, tf.cast(0, tf.int64)).minimize(cost_mse)
+#optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_mse)
 cost_rmse = tf.sqrt(tf.losses.mean_squared_error(labels=Y, predictions=prediction))
 
 
@@ -126,6 +126,51 @@ def batch_memory(memory):
     return data
 
 
+def stochastic_train_mini_batch_no_memory(sess, persistance_manager):
+    global final_test_error, final_train_error, train_steps, train_type
+    train_type = "Stochastic_mini-batch_no_memory"
+    batch_dataset(5)
+    error_log = LogString(error_log_path, "w+", "iteration,train_error,test_error\n")
+    time_log = LogString(time_log_path, "w+", "iteration,time\n")
+    train_step_count = 0
+    iteration = 0
+    #sess.run(training_mode_op, feed_dict={mode: False})
+    
+    validation_dataset_size = len(validation_dataset)
+    avg_cost_train = 0
+    for inputs, labels in train_dataset:
+        sess.run(training_mode_op, feed_dict={mode: train_dropout})
+        iteration_start_t = time.time()
+        avg_cost_train = 0
+  
+        for _ in range(train_steps):
+
+            train_error, _ = sess.run([cost_mse, optimizer], feed_dict={X: inputs, Y: labels})
+            avg_cost_train += train_error
+        iteration_finish_t = time.time()
+        avg_cost_train /= len(train_dataset)
+        train_error = avg_cost_train
+        avg_cost_test = 0
+        sess.run(training_mode_op, feed_dict={mode: False})
+        for x_validation, y_validation in validation_dataset:
+            cost_aux = sess.run(cost_rmse, feed_dict={X: x_validation, Y: y_validation})
+            avg_cost_test += cost_aux
+        test_error = avg_cost_test/validation_dataset_size
+        final_train_error = train_error
+        final_test_error = test_error
+        print("Iteration: %d\ttrain cost: %f\ttest cost: %f" % (
+            train_step_count, train_error, test_error))
+        train_step_count += 1
+        error_log.log_string([train_error, test_error])
+        time_log.log_string([iteration_finish_t-iteration_start_t])
+        if iteration != 0 and iteration % 100 == 0:
+            time_log.save()
+            error_log.save()
+            #persistance_manager.save_variables()
+        iteration += 1
+    train_steps = iteration
+    error_log.close_file()
+    time_log.close_file()
 
 def stochastic_train_mini_batch(sess, persistance_manager):
     
@@ -151,6 +196,8 @@ def stochastic_train_mini_batch(sess, persistance_manager):
             memory_len = memory_size
 
         total_time = 0
+        total_train_error = 0
+        total_test_error = 0
         for train_step in range(train_steps):
             if keyboard.is_pressed('q'):
                 break
@@ -172,10 +219,11 @@ def stochastic_train_mini_batch(sess, persistance_manager):
             test_error = avg_cost_test/validation_dataset_size
             final_train_error = train_error
             final_test_error = test_error
+            total_train_error += train_error
+            total_test_error += test_error
             print("Train_step: %d\ttrain cost: %f\ttest cost: %f" % (
                 train_step_count, train_error, test_error))
             train_step_count += 1
-            error_log.log_string([train_error, test_error])
             total_time += (step_finish_t-step_start_t)
         if iteration != 0 and iteration % 100 == 0:
             time_log.save()
@@ -183,6 +231,7 @@ def stochastic_train_mini_batch(sess, persistance_manager):
             #persistance_manager.save_variables()
         iteration += 1
         time_log.log_string([total_time])
+        error_log.log_string([total_train_error/train_steps, total_test_error/train_steps])
     error_log.close_file()
     time_log.close_file()
     
@@ -210,7 +259,9 @@ def stochastic_train_memory(sess, persistance_manager):
             memory = memory[1:]
             memory_len = memory_size
         total_time = 0
-        for train_step in range(train_steps):
+        total_train_error = 0 
+        total_test_error = 0
+        for _ in range(train_steps):
             if keyboard.is_pressed('q'):
                 break
             avg_cost_train = 0
@@ -233,7 +284,8 @@ def stochastic_train_memory(sess, persistance_manager):
             print("Train_step: %d\ttrain cost: %f\ttest cost: %f" % (
                 train_step_count, train_error, test_error))
             train_step_count += 1
-            error_log.log_string([train_error, test_error])
+            total_train_error += train_error
+            total_test_error += test_error
             total_time += (step_finish_t-step_start_t)
         if iteration != 0 and iteration % 100 == 0:
             time_log.save()
@@ -241,6 +293,7 @@ def stochastic_train_memory(sess, persistance_manager):
             #persistance_manager.save_variables()
         iteration += 1
         time_log.log_string([total_time])
+        error_log.log_string([total_train_error/train_steps, total_test_error/train_steps])
     error_log.close_file()
     time_log.close_file()
 
@@ -307,6 +360,96 @@ def batch_dataset(size_of_batches):
             data.append( [ inputs[i*size_of_batches:(i+1)*size_of_batches], labels[i*size_of_batches:(i+1)*size_of_batches]  ] )
         train_dataset = data
 
+def sweep_memory(dataset):
+    new_dataset = []
+    top_index = 1
+    bottom_index = 0
+    mini_batch_size_aux = mini_batch_size
+    total_epocs = (mini_batch_size + len(dataset))-1
+    if len(dataset) < mini_batch_size:
+        mini_batch_size_aux = len(dataset)
+        total_epocs = 2*mini_batch_size_aux-1
+    for i in range(total_epocs):
+        data_inputs = []
+        data_outputs = []
+        for i in dataset[bottom_index:top_index]:
+            data_inputs.append(i[0][0])
+            data_outputs.append(i[1][0])
+        new_dataset.append([data_inputs, data_outputs])
+        if top_index > len(dataset):
+            top_index = len(dataset)
+            bottom_index += 1
+        elif top_index >= mini_batch_size_aux:
+            bottom_index += 1
+            top_index += 1
+        else:
+            top_index += 1
+    return new_dataset
+
+
+
+def stochastic_train_sweep_memory(sess, persistance_manager):
+    global final_test_error, final_train_error, train_type
+    train_type = "Stochastic_sweep_dataset"
+    
+    error_log = LogString(error_log_path, "w+", "train_step,train_error,test_error\n")
+    time_log = LogString(time_log_path, "w+", "train_step,time\n")
+    train_step_count = 0
+    iteration = 0
+    #sess.run(training_mode_op, feed_dict={mode: False})
+    
+    validation_dataset_size = len(validation_dataset)
+    memory = []
+    memory_len = 0
+    for x_train, y_train in train_dataset:
+        if keyboard.is_pressed('q'):
+            break
+        memory.append([x_train, y_train])
+        memory_len += 1
+        if memory_len > memory_size:
+            memory = memory[1:]
+            memory_len = memory_size
+
+        total_time = 0
+        total_train_error = 0
+        total_test_error = 0
+        memory_aux = sweep_memory(memory)
+        for train_step in range(train_steps):
+            if keyboard.is_pressed('q'):
+                break
+            avg_cost_train = 0
+            sess.run(training_mode_op, feed_dict={mode: train_dropout})
+            step_start_t = time.time()
+
+            for x,y in memory_aux:
+                _, cost_aux = sess.run([optimizer, cost_mse], feed_dict={X: x, Y: y})
+                avg_cost_train += cost_aux
+            step_finish_t = time.time()
+            avg_cost_test = 0
+            sess.run(training_mode_op, feed_dict={mode: False})
+            for x_validation, y_validation in validation_dataset:
+                cost_aux = sess.run(cost_rmse, feed_dict={X: x_validation, Y: y_validation})
+                avg_cost_test += cost_aux
+
+            train_error = avg_cost_train/memory_len
+            test_error = avg_cost_test/validation_dataset_size
+            final_train_error = train_error
+            final_test_error = test_error
+            total_train_error += train_error
+            total_test_error += test_error
+            print("Train_step: %d\ttrain cost: %f\ttest cost: %f" % (
+                train_step_count, train_error, test_error))
+            train_step_count += 1
+            total_time += (step_finish_t-step_start_t)
+        if iteration != 0 and iteration % 100 == 0:
+            time_log.save()
+            error_log.save()
+            #persistance_manager.save_variables()
+        iteration += 1
+        time_log.log_string([total_time])
+        error_log.log_string([total_train_error/train_steps, total_test_error/train_steps])
+    error_log.close_file()
+    time_log.close_file()
 
 
 def batch_train(sess, persistance_manager):
@@ -405,9 +548,10 @@ def save_tests_logs(exec_number, time):
         for i in dropout_rate:
             dropout.append(str(i))
     dropout = " ".join(dropout)
-    optimizer_name = "%s %f %f %f"%(optimizer.name, beta_1, beta_2, epsilon)
-    #optimizer_name = optimizer.name
-    memory_size_str = "%d %d"%(memory_size, mini_batch_size)
+    #optimizer_name = "%s %f %f %f"%(optimizer.name, beta_1, beta_2, epsilon)
+    optimizer_name = optimizer.name
+    #memory_size_str = "%d %d"%(memory_size, mini_batch_size)
+    memory_size_str = "%d"%(memory_size)
     string = "%d,%s,%d,%f,%f,%f,%f,%s,%s,%s,%d,%f,%s,%s,%s\n"%(exec_number, memory_size_str, train_steps, learning_rate, final_train_error, final_test_error, final_fulltest_error, final_fulltest_stddev, optimizer_name,nodes_string,pnode_number,time,ac_fun,dropout, train_type)
     f.write(string)
     f.close()
@@ -428,6 +572,10 @@ def main():
         #stochastic_train(sess, persistance_manager)
         stochastic_train_mini_batch(sess, persistance_manager)
         #batch_train(sess, persistance_manager)
+        #stochastic_train_memory(sess, persistance_manager)
+        #stochastic_train(sess, persistance_manager)
+        #stochastic_train_mini_batch_no_memory(sess, persistance_manager)
+        #stochastic_train_sweep_memory(sess, persistance_manager)
         finish_time = time.time()
         exec_time = finish_time-start_time
         print("Training time: %f"%(exec_time))

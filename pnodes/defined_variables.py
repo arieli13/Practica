@@ -25,11 +25,11 @@ training_mode_op = tf.assign(training, mode)  # Operation to change the training
 X = tf.placeholder(tf.float32, [None, n_inputs])  # Inputs for the NN
 Y = tf.placeholder(tf.float32, [None, n_outputs])  # Labels for the NN
 
-training_finish_reading = 250
+training_finish_reading = 150
 memory_size = 100
 mini_batch_size = 5
 train_steps = 25  # Number of train steps of the training
-pnode_number = 2
+pnode_number = 17
 
 def read_datasets(path, training_registers, skip):
     train = []
