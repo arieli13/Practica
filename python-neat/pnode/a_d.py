@@ -15,7 +15,7 @@ import time
 dataset_path = "../../pnodes/datasets/normalized/pnode0.csv"
 
 train_registers = 250
-generations = 1
+generations = 4
 memory_size = 100
 last_checkpoint = ""
 memory = []

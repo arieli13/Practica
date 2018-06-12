@@ -102,7 +102,7 @@ cost_variable = tf.Variable(0.0)
 cost_variable_op = tf.assign(cost_variable, cost_placeholder)
 optimizer = tf.train.AdamOptimizer(
     learning_rate=learning_rate, beta1=beta_1, beta2=beta_2, epsilon=epsilon).minimize(cost_mse)
-#optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_mse)
+optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_mse)
 cost_rmse = tf.sqrt(tf.losses.mean_squared_error(labels=Y, predictions=prediction))
 
 
@@ -168,7 +168,6 @@ def stochastic_train_mini_batch_no_memory(sess, persistance_manager):
             error_log.save()
             #persistance_manager.save_variables()
         iteration += 1
-    train_steps = iteration
     error_log.close_file()
     time_log.close_file()
 
@@ -464,19 +463,18 @@ def batch_train(sess, persistance_manager):
     
     validation_dataset_size = len(validation_dataset)
     avg_cost_train = 0
+    #for _ in range(train_steps):
     while not keyboard.is_pressed('q'):
         sess.run(training_mode_op, feed_dict={mode: train_dropout})
-        iteration_start_t = time.time()
         avg_cost_train = 0
-  
+        iteration_start_t = time.time()
         for inputs, labels in train_dataset:
 
             train_error, _ = sess.run([cost_mse, optimizer], feed_dict={X: inputs, Y: labels})
             avg_cost_train += train_error
+        iteration_finish_t = time.time()
         avg_cost_train /= len(train_dataset)
         train_error = avg_cost_train
-
-        iteration_finish_t = time.time()
         avg_cost_test = 0
         sess.run(training_mode_op, feed_dict={mode: False})
         for x_validation, y_validation in validation_dataset:
@@ -570,12 +568,13 @@ def main():
         time_log_path += "_%d.csv"%(exec_number)
         start_time = time.time()
         #stochastic_train(sess, persistance_manager)
-        stochastic_train_mini_batch(sess, persistance_manager)
+        #stochastic_train_mini_batch(sess, persistance_manager)
         #batch_train(sess, persistance_manager)
         #stochastic_train_memory(sess, persistance_manager)
         #stochastic_train(sess, persistance_manager)
-        #stochastic_train_mini_batch_no_memory(sess, persistance_manager)
+        stochastic_train_mini_batch_no_memory(sess, persistance_manager)
         #stochastic_train_sweep_memory(sess, persistance_manager)
+        #batch_train(sess, persistance_manager)
         finish_time = time.time()
         exec_time = finish_time-start_time
         print("Training time: %f"%(exec_time))
