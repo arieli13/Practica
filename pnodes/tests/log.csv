@@ -468,3 +468,5 @@ number;memory_size;iterations;learning_rate;train_error;test_error;final_test_er
 467;10;5;0.01;0.00808;0.192634;0.226053;0.366407356;GradientDescent;128 64 64 32;0;4.07098;relu relu relu relu;False;Stochastic_mini-batch_no_memory
 468;10;5;0.1;0.008698;0.107631;0.15017;0.311384757;GradientDescent;128 64 64 32;0;4.075612;relu relu relu relu;False;Stochastic_mini-batch_no_memory
 469;10;25;0.1;0.039079;0.174653;0.207217;0.344208311;GradientDescent;128 64 64 32;0;4.831476;relu relu relu relu;False;Stochastic_mini-batch_no_memory
+470,10,25,0.100000,0.039292,0.164946,0.198756,0.3376704882292453,GradientDescent,128 64 64 32,0,14.033290,relu relu relu relu,False,Stochastic_mini-batch_no_memory
+471,10,25,0.100000,0.040471,0.153572,0.190024,0.3331968789625194,GradientDescent,128 64 64 32,0,5.077422,relu relu relu relu,False,Stochastic_mini-batch_no_memory

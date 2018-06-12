@@ -2,19 +2,19 @@ import sys
 sys.path.append("../classes")
 import Graphics as gf
 
-csvs_numbers = [35, 36, 37, 38]
-header = "iteration,memory_5,memory_10,memory_50,memory_100\n"
+csvs_numbers = [454, 456, 458]
+header = "Iteración,Memoria 10,Memoria 50,Memoria 100\n"
 csvs = []
-index_to_join = 1
+index_to_join = 2
 
-name = ["Execution_time","Train", "Test"]
+name = ["Entrenamiento", "Validación"]
 name = name[index_to_join-1]
 
-steps = 50
+steps = 25
 lr = "1"
 
 for i in csvs_numbers:
-    csvs.append( "./tests/times/time_%d.csv"%(i) )
+    csvs.append( "./tests/errors/error_log_%d.csv"%(i) )
 
 files = []
 finish_csv = []
@@ -26,7 +26,7 @@ for i in csvs:
 
 
 for i in range(len(files[0])):
-    new_data = ["%d,"%(i)]
+    new_data = ["%d"%(i)]
     for f in files:
         new_data.append(str(float(f[i].split(",")[index_to_join])))
     new_line = ",".join(new_data)+"\n"
@@ -38,6 +38,6 @@ new_file = open(new_path, "w+")
 new_file.write(header)
 new_file.write(finish_csv)
 new_file.close()
-save_path = "./tests/joined_graphs/Times/%d_steps_%s_%s.png"%(steps, lr, name)
-gf.plot_csv(new_path, ",", 0,[1, 2, 3, 4], "Train_step", "Value", "%s_%d_steps"%(name, steps), ["g.", "r.", "k.", "b."], True, save_path)
+save_path = "./tests/joined_graphs/Errors/minibatch_memoria-25-validacion.png"
+gf.plot_csv(new_path, ",", 0,[1, 2, 3], "Iteración", "Error cuadrático medio", "%s con %d pasos por iteración"%(name, steps), ["g.", "r.", "k.", "b."], True, save_path)
 
