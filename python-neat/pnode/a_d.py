@@ -70,62 +70,49 @@ def fitness_function(genomes, config):
         error = math.sqrt(error)
         genome.fitness = error*-1 #max
 
+winner_net = None
+config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                     neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                     os.path.join("./", "config.txt"))
+p = neat.Population(config)
+p.add_reporter(OwnReporter())
+def run(iteration):
 
-def run(config_file, own_checkpointer, winner_net, iteration):
-    config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                         config_file)
-
-    # Create the population, which is the top-level object for a NEAT run.
-    p = neat.Population(config)
-
-    #checkpointer_reporter = neat.Checkpointer(100, filename_prefix="./checkpoints/ckpt-")
-    #p.add_reporter(own_checkpointer)
-    #last_checkpoint = own_checkpointer.restore_checkpoint()
-    #if last_checkpoint is not None:
-        #p = last_checkpoint
-    if winner_net is not None:
-        p = winner_net
-
-    p.add_reporter(OwnReporter())
-    #stats = neat.StatisticsReporter()
-    #p.add_reporter(stats)
     start_time = time.time()
+    print("Comienzo")
     winner = p.run(fitness_function, generations)
     finish_time = time.time()
+    print("Termino")
     total_time = finish_time-start_time
     # Display the winning genome.
     print('\nIteration: %d, Best genome: %f'%(iteration, winner.fitness))
-
-    winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
-    best_fit_log.log_string([winner.fitness])
+    if iteration >= 499:
+        winner_net = neat.nn.FeedForwardNetwork.create(winner, config)
+    best_fit_log.log_string([abs(winner.fitness)])
     #own_checkpointer.save_checkpoint(p.config, p.population, p.species)
-    return winner_net, p, total_time
+    return total_time
 
-def stochastic_train_memory(config_file):
-    global memory, dataset_train
-    winner_net = None
-    own_checkpointer = OwnCheckpointer("./checkpoints/ckpt-")
-    winner = None
+def stochastic_train_memory():
+    global memory, dataset_train, winner_net
+    #own_checkpointer = OwnCheckpointer("./checkpoints/ckpt-")
     iteration = 0
     for i in dataset_train:
         memory.append(i)
         if len(memory) > memory_size:
             memory = memory[1:]
-        winner_net, winner, total_time = run(config_file, own_checkpointer, winner, iteration)
+        total_time = run(iteration)
         time_log.log_string([total_time])
         iteration += 1
     test(winner_net)
     time_log.close_file()
+    best_fit_log.close_file()
     gf.plot_csv("./predictions.csv", ",", 0, [1, 2], "Iteration", "Value", "Predictions log", ["r+", "ko"], True, None)
     gf.plot_csv("./times_log.csv", ",", 0, [1], "Iteration", "Seconds", "Times log", ["ko"], True, "./times_log_img.png")
 
 
 def main():
     global dataset_train, dataset_test
-    local_dir = "./"
-    config_path = os.path.join(local_dir, "config.txt")
-    stochastic_train_memory(config_path)
+    stochastic_train_memory()
 
 if __name__ == '__main__':
     main()

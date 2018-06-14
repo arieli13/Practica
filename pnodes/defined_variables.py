@@ -1,8 +1,5 @@
 import tensorflow as tf
 import sys
-sys.path.append("../classes/Dataset")
-from ListClassicDataset import ListClassicDataset
-from ListIncrementalDataset import ListIncrementalDataset
 
 n_inputs = 8  # Inputs for the NN
 n_outputs = 1  # Outputs of the NN
@@ -12,8 +9,9 @@ hidden_layers_ac_fun = [tf.nn.relu]*len(hidden_layers_nodes)  # Activation funct
 hidden_layers_ac_fun_names = ["relu"]*len(hidden_layers_nodes)
 dropout_rate = [0.1]*len(hidden_layers_nodes)  # Dropout rate of te hidden layers
 train_dropout = False
-learning_rate = 0.1
+learning_rate = 0.01
 
+#Adam Optimizer
 beta_1 = 0.9
 beta_2 = 0.999
 epsilon = 1e-8
@@ -26,7 +24,7 @@ X = tf.placeholder(tf.float32, [None, n_inputs])  # Inputs for the NN
 Y = tf.placeholder(tf.float32, [None, n_outputs])  # Labels for the NN
 
 training_finish_reading = 500
-memory_size = 10
+memory_size = 100
 mini_batch_size = 5
 train_steps = 25  # Number of train steps of the training
 pnode_number = 0
