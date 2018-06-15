@@ -89,9 +89,9 @@ cost_mse = tf.losses.mean_squared_error(labels=Y, predictions=prediction)
 cost_placeholder = tf.placeholder(tf.float32)
 cost_variable = tf.Variable(0.0)
 cost_variable_op = tf.assign(cost_variable, cost_placeholder)
-#optimizer = tf.train.AdamOptimizer(
-#    learning_rate=learning_rate, beta1=beta_1, beta2=beta_2, epsilon=epsilon).minimize(cost_mse)
-optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_mse)
+optimizer = tf.train.AdamOptimizer(
+    learning_rate=learning_rate, beta1=beta_1, beta2=beta_2, epsilon=epsilon).minimize(cost_mse)
+#optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost_mse)
 cost_rmse = tf.sqrt(tf.losses.mean_squared_error(labels=Y, predictions=prediction))
 
 def batch_dataset(dataset, batch_size):
@@ -502,14 +502,14 @@ def main():
         start_time = time.time()
         dto = DTO()
         dto.number = exec_number
-        batch_train(sess, persistance_manager, dto)
+        stochastic_memory_mini_batch(sess, persistance_manager, dto)
         finish_time = time.time()
         exec_time = finish_time-start_time
         dto.time = exec_time
         print("Training time: %f"%(exec_time))
         test(sess, dto)
         save_tests_logs(dto)
-        gf.plot_csv(error_log_path, ",", 0,[1, 2], "Iteration", "Value", "Error log", ["g.", "r."], True, None)
+        gf.plot_csv(error_log_path, ",", 0,[1, 2], "Iteration", "Value", "Error log", ["g.", "r."], True, "C:/Users/Usuario/Desktop/ariel/Practica/pnodes/tests/errors_images/%d_e.png"%(exec_number))
         gf.plot_csv(predictions_log_path, ",", 0, [1,2], "Iteration", "Value", "Predictions log", ["r+", "ko"], True, "C:/Users/Usuario/Desktop/ariel/Practica/pnodes/tests/predictions_images/%d_p.png"%(exec_number))
         gf.plot_csv(time_log_path, ",", 0, [1], "Iteration", "Seconds", "Times log", ["k."], False, "C:/Users/Usuario/Desktop/ariel/Practica/pnodes/tests/times_images/%d_t.png"%(exec_number))
         print(exec_number)

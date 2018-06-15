@@ -9,7 +9,7 @@ hidden_layers_ac_fun = [tf.nn.relu]*len(hidden_layers_nodes)  # Activation funct
 hidden_layers_ac_fun_names = ["relu"]*len(hidden_layers_nodes)
 dropout_rate = [0.1]*len(hidden_layers_nodes)  # Dropout rate of te hidden layers
 train_dropout = False
-learning_rate = 0.01
+learning_rate = 0.0001
 
 #Adam Optimizer
 beta_1 = 0.9
@@ -41,7 +41,9 @@ def read_datasets(path, training_registers, skip):
         test = lines[:]
     return train, validation, test
 
-train_dataset, validation_dataset, test_dataset = read_datasets("./datasets/normalized/pnode%d.csv"%(pnode_number), training_finish_reading, 1)
+#train_dataset, validation_dataset, test_dataset = read_datasets("./datasets/normalized/pnode%d.csv"%(pnode_number), training_finish_reading, 1)
+train_dataset, validation_dataset, test_dataset = read_datasets("./datasets/normalized/cross_validation/9.csv", training_finish_reading, 1)
+
 
 error_log_path = "./tests/errors/error_log"
 predictions_log_path = "./tests/predictions/predictions"
