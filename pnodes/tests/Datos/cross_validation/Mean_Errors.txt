@@ -1,0 +1,6 @@
+Train error: 0.003800416
+Validation error: 0.033627178
+
+Test error: 0.037475512
+Stddev: 0.182344028
+
